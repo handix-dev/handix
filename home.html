@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handix - Votre Guide Handball</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header avec fond violet -->
+    <header>
+        <div class="header-content">
+            <div class="logo">HANDIX</div>
+            <div class="user-profile">
+                <i class="ri-user-line"></i>
+            </div>
+        </div>
+        <div class="welcome-section">
+            <div class="welcome-text">Bon retour,</div>
+            <div class="welcome-title">Trouvez vos matchs</div>
+        </div>
+    </header>
+
+    <main>
+        <!-- ONGLET ACCUEIL -->
+        <section id="home" class="page">
+            <div class="search-container">
+                <input type="text" class="search-input" id="home-search" placeholder="Rechercher équipe, ville, gymnase...">
+                <button class="search-button" id="home-search-button">
+                    <i class="ri-search-line"></i>
+                </button>
+            </div>
+
+            <div class="quick-actions">
+                <div class="quick-action" data-action="nearby">
+                    <div class="quick-action-icon">
+                        <i class="ri-map-pin-line"></i>
+                    </div>
+                    <div class="quick-action-label">Près de moi</div>
+                </div>
+                <div class="quick-action" data-action="today">
+                    <div class="quick-action-icon">
+                        <i class="ri-calendar-line"></i>
+                    </div>
+                    <div class="quick-action-label">Aujourd'hui</div>
+                </div>
+                <div class="quick-action" data-action="favorites">
+                    <div class="quick-action-icon">
+                        <i class="ri-star-line"></i>
+                    </div>
+                    <div class="quick-action-label">Favoris</div>
+                </div>
+                <div class="quick-action" onclick="window.location.href='salles.html'">
+                    <div class="quick-action-icon">
+                        <i class="ri-map-line"></i>
+                    </div>
+                    <div class="quick-action-label">Salles</div>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <div class="section-title">Matchs du jour</div>
+                <a href="#" class="section-link">Voir tout</a>
+            </div>
+
+            <div class="data-container" id="today-matches">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Chargement des matchs...</div>
+                </div>
+            </div>
+
+            <div class="section-header">
+                <div class="section-title">Mes favoris</div>
+                <a href="#" class="section-link">Voir tout</a>
+            </div>
+
+            <div class="data-container" id="favorites-preview">
+                <div class="no-results">
+                    <div class="no-results-icon">
+                        <i class="ri-star-line"></i>
+                    </div>
+                    <div>Aucun favori</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Navigation bottom -->
+    <nav class="bottom-nav" onclick="window.location.href='salles.html'">
+        <div class="nav-item">
+            <div class="nav-icon"><i class="ri-map-pin-line"></i></div>
+            <div class="nav-label">Salles</div>
+        </div>
+        <div class="nav-item" onclick="window.location.href='clubs.html'">
+            <div class="nav-icon"><i class="ri-team-line"></i></div>
+            <div class="nav-label">Clubs</div>
+        </div>
+        <div class="nav-item active" onclick="window.location.href='home.html'">
+            <div class="nav-icon"><i class="ri-home-5-line"></i></div>
+            <div class="nav-label">Accueil</div>
+        </div>
+        <div class="nav-item" onclick="window.location.href='matchs.html'">
+            <div class="nav-icon"><i class="ri-trophy-line"></i></div>
+            <div class="nav-label">Matchs</div>
+        </div>
+        <div class="nav-item" onclick="window.location.href='favoris.html'">
+            <div class="nav-icon"><i class="ri-star-line"></i></div>
+            <div class="nav-label">Favoris</div>
+        </div>
+    </nav>
+
+    <script src="script.js"></script>
+</body>
+</html>

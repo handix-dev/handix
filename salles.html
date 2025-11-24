@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handix - Salles de Sport</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header avec fond violet -->
+    <header>
+        <div class="header-content">
+            <div class="logo">HANDIX</div>
+            <div class="user-profile">
+                <i class="ri-user-line"></i>
+            </div>
+        </div>
+        <div class="welcome-section">
+            <div class="welcome-text">Salles de handball</div>
+            <div class="welcome-title">Trouvez vos gymnases</div>
+        </div>
+    </header>
+
+    <main>
+        <!-- ONGLET SALLES -->
+        <section id="venues" class="page">
+            <div class="search-container">
+                <input type="text" class="search-input" id="venue-search" placeholder="Rechercher un gymnase, une ville, un code postal...">
+                <button class="search-button" id="venue-search-button">
+                    <i class="ri-search-line"></i>
+                </button>
+            </div>
+
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+
+            <div class="section-header">
+                <div class="section-title">Salles près de vous</div>
+                <a href="#" class="section-link" id="refresh-venues">Actualiser</a>
+            </div>
+
+            <div class="data-container" id="venues-results">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Chargement des salles...</div>
+                </div>
+            </div>
+
+            <!-- Vue détaillée d'une salle -->
+            <div id="venue-detail-view" style="display: none;">
+                <button class="back-button" id="back-to-venues">
+                    <i class="ri-arrow-left-line"></i> Retour aux salles
+                </button>
+                <div id="venue-detail-container"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Navigation bottom -->
+    <nav class="bottom-nav" id="bottom-nav">
+        <div class="nav-item active" data-target="salles">
+            <div class="nav-icon"><i class="ri-map-pin-line"></i></div>
+            <div class="nav-label">Salles</div>
+        </div>
+        <div class="nav-item" data-target="clubs">
+            <div class="nav-icon"><i class="ri-team-line"></i></div>
+            <div class="nav-label">Clubs</div>
+        </div>
+        <div class="nav-item" data-target="home">
+            <div class="nav-icon"><i class="ri-home-5-line"></i></div>
+            <div class="nav-label">Accueil</div>
+        </div>
+        <div class="nav-item" data-target="matchs">
+            <div class="nav-icon"><i class="ri-trophy-line"></i></div>
+            <div class="nav-label">Matchs</div>
+        </div>
+        <div class="nav-item" data-target="favoris">
+            <div class="nav-icon"><i class="ri-star-line"></i></div>
+            <div class="nav-label">Favoris</div>
+        </div>
+    </nav>
+
+    <script src="script.js"></script>
+</body>
+</html>
