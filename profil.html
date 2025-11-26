@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Connexion - Handix</title>
-
-    <!-- Librairies nécessaires -->
-    <script src="https://cdn.jsdelivr.net/npm/bcryptjs/dist/bcrypt.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
@@ -158,23 +155,23 @@
     <!-- Navigation -->
     <nav class="bottom-nav">
         <div class="nav-item" onclick="window.location.href='salles.html'">
-            <i class="ri-map-pin-line"></i>
+            <div class="nav-icon"><i class="ri-map-pin-line"></i></div>
             <div class="nav-label">Salles</div>
         </div>
         <div class="nav-item" onclick="window.location.href='clubs.html'">
-            <i class="ri-team-line"></i>
+            <div class="nav-icon"><i class="ri-team-line"></i></div>
             <div class="nav-label">Clubs</div>
         </div>
-        <div class="nav-item" onclick="window.location.href='home.html'">
-            <i class="ri-home-5-line"></i>
+        <div class="nav-item active" onclick="window.location.href='home.html'">
+            <div class="nav-icon"><i class="ri-home-5-line"></i></div>
             <div class="nav-label">Accueil</div>
         </div>
         <div class="nav-item" onclick="window.location.href='matchs.html'">
-            <i class="ri-trophy-line"></i>
+            <div class="nav-icon"><i class="ri-trophy-line"></i></div>
             <div class="nav-label">Matchs</div>
         </div>
-        <div class="nav-item active" onclick="window.location.href='profil.html'">
-            <i class="ri-user-line"></i>
+        <div class="nav-item" onclick="window.location.href='profil.html'">
+            <div class="nav-icon"><i class="ri-user-line"></i></div>
             <div class="nav-label">Profil</div>
         </div>
     </nav>

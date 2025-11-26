@@ -1,345 +1,258 @@
-// -----------------------------------------------------------------------------
-// CONFIG SUPABASE CONNEXION
-// -----------------------------------------------------------------------------
+/* =============================================================================
+   CONFIG SUPABASE
+============================================================================= */
 const SUPABASE_URL = 'https://hjrjcfloqdhbkpjpsdhn.supabase.co';
 const SUPABASE_ANON_KEY =
     'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhqcmpjZmxvcWRoYmtwanBzZGhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMxMDk2ODAsImV4cCI6MjA3ODY4NTY4MH0.zL3zexnUKamkJ0ZL_oHjX0AgcPxMBXIKamR0AVoR_0Q';
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// -----------------------------------------------------------------------------
-// VARIABLES
-// -----------------------------------------------------------------------------
+/* =============================================================================
+   INITIALISATION GLOBALE
+============================================================================= */
+async function initAuth() {
+    console.log("🚀 Initialisation AUTH…");
+    await restoreSession();
+    initAuthEventListeners();
+}
+
+document.addEventListener("DOMContentLoaded", initAuth);
+
+/* =============================================================================
+   VARIABLES
+============================================================================= */
 let currentUser = null;
 let currentFavoriteType = 'equipes';
 
-// -----------------------------------------------------------------------------
-// INITIALISATION
-// -----------------------------------------------------------------------------
-document.addEventListener('DOMContentLoaded', function () {
-    console.log('🚀 Initialisation de l’auth custom...');
-    restoreSession();
-    initAuthEventListeners();
-});
-
-// -----------------------------------------------------------------------------
-// SYSTEME D'AUTH CUSTOM (TABLE users)
-// -----------------------------------------------------------------------------
-
-// 🔹 Au chargement : vérifie s’il y a un user en session (localStorage)
+/* =============================================================================
+   RESTAURATION SESSION
+============================================================================= */
 async function restoreSession() {
     const user = localStorage.getItem('handix_session_user');
     if (user) {
         currentUser = JSON.parse(user);
-        console.log('🟢 Session restaurée →', currentUser);
+        console.log("🟢 Session restaurée :", currentUser);
         showProfileSection();
         updateProfileDisplay();
         loadFavorites();
     } else {
-        console.log('⚪ Aucun user stocké');
+        console.log("⚪ Aucun user stocké");
         showAuthForm();
     }
 }
 
-// -----------------------------------------------------------------------------
-// INSCRIPTION
-// -----------------------------------------------------------------------------
+/* =============================================================================
+   INSCRIPTION (RPC Supabase)
+============================================================================= */
 async function handleSignup() {
-    console.log('📝 Inscription custom...');
-    const email = document.getElementById('signup-email').value.trim();
-    const username = document.getElementById('signup-username').value.trim();
-    const password = document.getElementById('signup-password').value;
-    const confirmPassword = document.getElementById('signup-confirm-password').value;
+    console.log("📝 Inscription via RPC...");
+    const email = document.getElementById("signup-email").value.trim();
+    const username = document.getElementById("signup-username").value.trim();
+    const password = document.getElementById("signup-password").value;
+    const confirmPassword = document.getElementById("signup-confirm-password").value;
 
-    if (!validateEmail(email)) return showAuthMessage('Email invalide', 'error');
-    if (!username) return showAuthMessage('Nom d’utilisateur requis', 'error');
-    if (password.length < 6) return showAuthMessage('Mot de passe trop court', 'error');
-    if (password !== confirmPassword)
-        return showAuthMessage('Les mots de passe ne correspondent pas', 'error');
+    if (!validateEmail(email)) return showAuthMessage("Email invalide", "error");
+    if (!username) return showAuthMessage("Nom d’utilisateur requis", "error");
+    if (password.length < 6) return showAuthMessage("Mot de passe trop court", "error");
+    if (password !== confirmPassword) return showAuthMessage("Les mots de passe ne correspondent pas", "error");
 
-    const password_hash = await bcrypt.hash(password, 10);
+    const { data, error } = await supabase.rpc('signup_user', {
+        _email: email,
+        _username: username,
+        _password: password
+    });
 
-    // Vérifier si l’email existe déjà
-    const { data: exists } = await supabase
-        .from('users')
-        .select('email')
-        .eq('email', email)
-        .single();
+    if (error) return showAuthMessage(error.message, "error");
 
-    if (exists) {
-        return showAuthMessage('Un compte existe déjà avec cet email', 'error');
-    }
-
-    // Insert user
-    const { data, error } = await supabase.from('users').insert([
-        {
-            email: email,
-            password_hash: password_hash,
-            username: username,
-            favorites_clubs: '[]',
-            favorites_equipes: '[]',
-            favorites_salles: '[]',
-        },
-    ]);
-
-    if (error) {
-        console.error(error);
-        return showAuthMessage('Erreur: ' + error.message, 'error');
-    }
-
-    showAuthMessage('Compte créé avec succès !', 'success');
-
-    // Passe automatiquement sur login + met l’email
+    showAuthMessage("Compte créé !", "success");
     setTimeout(() => {
-        switchAuthTab('login');
-        document.getElementById('login-email').value = email;
-    }, 1500);
+        switchAuthTab("login");
+        document.getElementById("login-email").value = email;
+    }, 1000);
 }
 
-// -----------------------------------------------------------------------------
-// CONNEXION
-// -----------------------------------------------------------------------------
+/* =============================================================================
+   CONNEXION (RPC Supabase)
+============================================================================= */
 async function handleLogin() {
-    console.log('🔐 Connexion custom...');
-    const email = document.getElementById('login-email').value.trim();
-    const password = document.getElementById('login-password').value;
+    console.log("🔐 Connexion via RPC...");
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value;
+    if (!validateEmail(email)) return showAuthMessage("Email invalide", "error");
 
-    if (!validateEmail(email))
-        return showAuthMessage('Email invalide', 'error');
+    const { data, error } = await supabase.rpc('login_user', {
+        _email: email,
+        _password: password
+    });
 
-    // Récupère user
-    const { data: user, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
+    if (error || !data || data.length === 0)
+        return showAuthMessage("Email ou mot de passe incorrect", "error");
 
-    if (error || !user) return showAuthMessage('Email introuvable', 'error');
-
-    // Vérification hash
-    const ok = await bcrypt.compare(password, user.password_hash);
-    if (!ok) return showAuthMessage('Mot de passe incorrect', 'error');
-
-    // Session locale
-    currentUser = user;
-    localStorage.setItem('handix_session_user', JSON.stringify(user));
+    currentUser = data[0];
+    localStorage.setItem("handix_session_user", JSON.stringify(currentUser));
 
     updateProfileDisplay();
     showProfileSection();
     loadFavorites();
-    showAuthMessage('Connexion réussie !', 'success');
+    showAuthMessage("Connexion réussie !", "success");
 }
 
-// -----------------------------------------------------------------------------
-// DÉCONNEXION
-// -----------------------------------------------------------------------------
+/* =============================================================================
+   DÉCONNEXION
+============================================================================= */
 function handleLogout() {
-    localStorage.removeItem('handix_session_user');
+    localStorage.removeItem("handix_session_user");
     currentUser = null;
     showAuthForm();
-    showAuthMessage('Déconnecté', 'success');
+    showAuthMessage("Déconnecté", "success");
 }
 
-// -----------------------------------------------------------------------------
-// CHANGEMENT DE USERNAME
-// -----------------------------------------------------------------------------
+/* =============================================================================
+   PROFIL
+============================================================================= */
 async function handleSaveUsername() {
-    const newUsername = document.getElementById('edit-username').value.trim();
-    if (!newUsername) return showAuthMessage('Nom d’utilisateur invalide', 'error');
-    if (!currentUser) return;
+    const newUsername = document.getElementById("edit-username").value.trim();
+    if (!newUsername || !currentUser) return showAuthMessage("Nom invalide", "error");
 
     const { error } = await supabase
-        .from('users')
+        .from("users")
         .update({ username: newUsername })
-        .eq('id', currentUser.id);
+        .eq("id", currentUser.id);
 
-    if (error) {
-        console.error(error);
-        return showAuthMessage('Erreur lors de la mise à jour', 'error');
-    }
+    if (error) return showAuthMessage("Erreur serveur", "error");
 
     currentUser.username = newUsername;
-    localStorage.setItem('handix_session_user', JSON.stringify(currentUser));
-
+    localStorage.setItem("handix_session_user", JSON.stringify(currentUser));
     updateProfileDisplay();
-    showAuthMessage('Nom mis à jour ✔️', 'success');
+    showAuthMessage("Nom mis à jour ✔️", "success");
 }
 
-// -----------------------------------------------------------------------------
-// FAVORIS (JSON dans ta base)
-// -----------------------------------------------------------------------------
+/* =============================================================================
+   FAVORIS
+============================================================================= */
 async function loadFavorites() {
     if (!currentUser) return;
-
-    const list = document.getElementById('favorites-list');
+    const list = document.getElementById("favorites-list");
     if (!list) return;
 
-    let json;
-
+    let json = [];
     switch (currentFavoriteType) {
-        case 'equipes':
-            json = JSON.parse(currentUser.favorites_equipes);
-            break;
-        case 'salles':
-            json = JSON.parse(currentUser.favorites_salles);
-            break;
-        case 'clubs':
-            json = JSON.parse(currentUser.favorites_clubs);
-            break;
+        case "equipes": json = JSON.parse(currentUser.favorites_equipes); break;
+        case "salles": json = JSON.parse(currentUser.favorites_salles); break;
+        case "clubs": json = JSON.parse(currentUser.favorites_clubs); break;
     }
 
     if (!json || json.length === 0) {
-        list.innerHTML = `
-            <div class="no-favorites">
-                <i class="ri-star-line"></i>
-                <div>Aucun favori</div>
-            </div>`;
+        list.innerHTML = `<div class="no-favorites"><i class="ri-star-line"></i><div>Aucun favori</div></div>`;
         return;
     }
 
-    list.innerHTML = json
-        .map(
-            (fav) => `
+    list.innerHTML = json.map(f => `
         <div class="favorite-item">
-            <div class="favorite-item-content">
-                <div class="favorite-item-name">${fav.name}</div>
-            </div>
-            <button class="remove-favorite" onclick="removeFavorite('${fav.id}')">
+            <div class="favorite-item-name">${f.name}</div>
+            <button onclick="removeFavorite('${f.id}')" class="remove-favorite">
                 <i class="ri-delete-bin-line"></i>
             </button>
-        </div>`
-        )
-        .join('');
+        </div>
+    `).join("");
 }
 
 async function removeFavorite(id) {
-    let listName;
-    switch (currentFavoriteType) {
-        case 'equipes':
-            listName = 'favorites_equipes';
-            break;
-        case 'salles':
-            listName = 'favorites_salles';
-            break;
-        case 'clubs':
-            listName = 'favorites_clubs';
-            break;
-    }
+    let field = {
+        equipes: "favorites_equipes",
+        salles: "favorites_salles",
+        clubs: "favorites_clubs"
+    }[currentFavoriteType];
 
-    let arr = JSON.parse(currentUser[listName]);
-    arr = arr.filter((f) => f.id !== id);
+    let arr = JSON.parse(currentUser[field]).filter(f => f.id !== id);
 
     const { error } = await supabase
-        .from('users')
-        .update({ [listName]: JSON.stringify(arr) })
-        .eq('id', currentUser.id);
+        .from("users")
+        .update({ [field]: JSON.stringify(arr) })
+        .eq("id", currentUser.id);
 
     if (!error) {
-        currentUser[listName] = JSON.stringify(arr);
-        localStorage.setItem('handix_session_user', JSON.stringify(currentUser));
+        currentUser[field] = JSON.stringify(arr);
+        localStorage.setItem("handix_session_user", JSON.stringify(currentUser));
         loadFavorites();
-        showAuthMessage('Favori supprimé', 'success');
+        showAuthMessage("Favori supprimé", "success");
     }
 }
 
-// -----------------------------------------------------------------------------
-// UI
-// -----------------------------------------------------------------------------
+/* =============================================================================
+   UI
+============================================================================= */
 function updateProfileDisplay() {
     if (!currentUser) return;
-
-    document.getElementById('profile-username').textContent =
-        currentUser.username || 'Utilisateur';
-
-    document.getElementById('profile-email').textContent = currentUser.email;
-
-    document.getElementById('edit-username').value =
-        currentUser.username || '';
+    document.getElementById("profile-username").textContent = currentUser.username;
+    document.getElementById("profile-email").textContent = currentUser.email;
+    document.getElementById("edit-username").value = currentUser.username;
 }
 
 function showAuthForm() {
-    document.getElementById('profile-section').style.display = 'none';
-    document.querySelector('.auth-container').style.display = 'block';
-    switchAuthTab('login');
+    document.getElementById("profile-section").style.display = "none";
+    document.querySelector(".auth-container").style.display = "block";
+    switchAuthTab("login");
 }
 
 function showProfileSection() {
-    document.querySelector('.auth-container').style.display = 'none';
-    document.getElementById('profile-section').style.display = 'block';
+    document.querySelector(".auth-container").style.display = "none";
+    document.getElementById("profile-section").style.display = "block";
 }
 
-// -----------------------------------------------------------------------------
-// UTILS
-// -----------------------------------------------------------------------------
+/* =============================================================================
+   UTILS
+============================================================================= */
 function validateEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function showAuthMessage(message, type) {
     clearAuthMessages();
-
-    const msg = document.createElement('div');
+    const msg = document.createElement("div");
     msg.className = `auth-message ${type}`;
     msg.textContent = message;
-
-    const cont = document.querySelector('.auth-container');
-    cont.insertBefore(msg, cont.firstChild);
-
+    document.querySelector(".auth-container").prepend(msg);
     setTimeout(() => msg.remove(), 5000);
 }
 
 function clearAuthMessages() {
-    document.querySelectorAll('.auth-message').forEach((m) => m.remove());
+    document.querySelectorAll(".auth-message").forEach(m => m.remove());
 }
 
+/* =============================================================================
+   EVENT LISTENERS
+============================================================================= */
 function initAuthEventListeners() {
-    document
-        .getElementById('login-button')
-        .addEventListener('click', handleLogin);
+    document.getElementById("login-button").onclick = handleLogin;
+    document.getElementById("signup-button").onclick = handleSignup;
+    document.getElementById("logout-button").onclick = handleLogout;
+    document.getElementById("save-username").onclick = handleSaveUsername;
 
-    document
-        .getElementById('signup-button')
-        .addEventListener('click', handleSignup);
-
-    document
-        .getElementById('logout-button')
-        .addEventListener('click', handleLogout);
-
-    document
-        .getElementById('save-username')
-        .addEventListener('click', handleSaveUsername);
-
-    document.querySelectorAll('.favorite-tab').forEach((tab) =>
-        tab.addEventListener('click', function () {
-            currentFavoriteType = this.getAttribute('data-type');
-            document
-                .querySelectorAll('.favorite-tab')
-                .forEach((t) => t.classList.remove('active'));
-            this.classList.add('active');
+    document.querySelectorAll(".favorite-tab").forEach(tab =>
+        tab.onclick = () => {
+            currentFavoriteType = tab.dataset.type;
+            document.querySelectorAll(".favorite-tab").forEach(t => t.classList.remove("active"));
+            tab.classList.add("active");
             loadFavorites();
-        })
+        }
+    );
+
+    document.querySelectorAll(".tab").forEach(tab =>
+        tab.onclick = () => {
+            switchAuthTab(tab.dataset.tab);
+            clearAuthMessages();
+        }
     );
 }
 
-// -----------------------------------------------------------------------------
-// SWITCH CONNEXION <-> INSCRIPTION
-// -----------------------------------------------------------------------------
+/* =============================================================================
+   SWITCH AUTH TABS
+============================================================================= */
 function switchAuthTab(tab) {
-    // désactive tous les onglets
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    // désactive tous les formulaires
-    document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    document.querySelectorAll(".auth-form").forEach(f => f.classList.remove("active"));
 
-    // active l'onglet sélectionné
-    document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
-    document.getElementById(`${tab}-form`).classList.add('active');
+    document.querySelector(`.tab[data-tab="${tab}"]`).classList.add("active");
+    document.getElementById(`${tab}-form`).classList.add("active");
 }
-
-// Ajouter les listeners sur les tabs
-document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', function () {
-        const selected = this.getAttribute('data-tab');
-        switchAuthTab(selected);
-        clearAuthMessages(); // on efface les messages d’erreurs
-    });
-});
