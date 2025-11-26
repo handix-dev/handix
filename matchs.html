@@ -35,17 +35,32 @@
                 </button>
             </div>
 
-            <!-- Filtres rapides -->
-            <div class="filters-container">
+            <!-- Onglets Matchs à venir / Résultats -->
+            <div class="tabs-container">
+                <div class="tab active" data-tab="upcoming">
+                    <i class="ri-calendar-event-line"></i>
+                    Matchs à venir
+                </div>
+                <div class="tab" data-tab="results">
+                    <i class="ri-trophy-line"></i>
+                    Résultats
+                </div>
+            </div>
+
+            <!-- Filtres pour matchs à venir -->
+            <div class="filters-container" id="upcoming-filters">
                 <div class="filter-chip active" data-filter="today">Aujourd'hui</div>
                 <div class="filter-chip" data-filter="weekend">Ce week-end</div>
                 <div class="filter-chip" data-filter="upcoming">À venir</div>
+                <div class="filter-chip" data-filter="nearby">
+                    <i class="ri-map-pin-line"></i> Près de moi
+                </div>
                 <div class="filter-chip" data-filter="calendar">
                     <i class="ri-calendar-line"></i> Date
                 </div>
             </div>
 
-            <!-- Sélecteur de date (caché par défaut) -->
+            <!-- Sélecteur de date pour matchs à venir -->
             <div id="date-picker-container" class="date-picker-container" style="display: none;">
                 <input type="date" class="date-input" id="match-date">
                 <button class="search-button" id="date-search-button" style="margin-top: 8px;">
@@ -53,8 +68,27 @@
                 </button>
             </div>
 
+            <!-- Filtres pour les résultats (cachés par défaut) -->
+            <div class="filters-container" id="results-filters" style="display: none;">
+                <div class="filter-chip active" data-filter="recent">Récent</div>
+                <div class="filter-chip" data-filter="last-weekend">Week-end dernier</div>
+                <div class="filter-chip" data-filter="last-week">Semaine dernière</div>
+                <div class="filter-chip" data-filter="two-weeks-ago">Week-end n-2</div>
+                <div class="filter-chip" data-filter="results-date">
+                    <i class="ri-calendar-line"></i> Date
+                </div>
+            </div>
+
+            <!-- Sélecteur de date pour les résultats (caché par défaut) -->
+            <div id="results-date-picker-container" class="date-picker-container" style="display: none;">
+                <input type="date" class="date-input" id="results-date">
+                <button class="search-button" id="results-date-search-button" style="margin-top: 8px;">
+                    <i class="ri-search-line"></i> Rechercher par date
+                </button>
+            </div>
+
             <div class="section-header">
-                <div class="section-title">Matchs à venir</div>
+                <div class="section-title" id="matches-section-title">Matchs à venir</div>
                 <a href="#" class="section-link" id="refresh-matches">Actualiser</a>
             </div>
 

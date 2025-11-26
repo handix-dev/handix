@@ -10,6 +10,7 @@ let userLocation = null;
 let clubsData = [];
 let venuesMarkers = [];
 let currentPage = 'home';
+let currentMatchFilter = 'upcoming'; // Pour garder en mémoire le filtre actuel
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', function() {
@@ -52,13 +53,22 @@ async function initApp() {
             setTimeout(initSallesEventListeners, 100);
             break;
         case 'matchs':
-            await loadUpcomingMatches();
-            setTimeout(initMatchesEventListeners, 100);
+            await initMatchesPage();
             break;
     }
     
     requestLocationPermission();
     checkForNewMatches();
+}
+
+// FONCTIONS SPÉCIFIQUES POUR LA PAGE MATCHS
+async function initMatchesPage() {
+    console.log('🚀 Initialisation de la page matchs...');
+    await initMatchesEventListeners();
+    requestLocationPermission();
+    
+    // Charger les matchs à venir par défaut
+    loadUpcomingMatches();
 }
 
 // Gestionnaire d'événements pour la navigation
@@ -175,6 +185,9 @@ function initSallesEventListeners() {
 function initMatchesEventListeners() {
     console.log('🎯 Initialisation des écouteurs matchs...');
     
+    // Initialiser les onglets
+    initMatchesTabs();
+    
     // Recherche de matchs
     const matchSearchBtn = document.getElementById('match-search-button');
     const matchSearchInput = document.getElementById('match-search');
@@ -203,15 +216,24 @@ function initMatchesEventListeners() {
         });
     }
 
-    // Filtres rapides
-    document.querySelectorAll('.filter-chip[data-filter]').forEach(chip => {
+    // Filtres rapides pour matchs à venir
+    document.querySelectorAll('#upcoming-filters .filter-chip[data-filter]').forEach(chip => {
         chip.addEventListener('click', function() {
             const filter = this.getAttribute('data-filter');
+            currentMatchFilter = filter; // Mettre à jour le filtre actuel
             handleMatchFilter(filter, this);
         });
     });
 
-    // Recherche par date
+    // Filtres pour résultats
+    document.querySelectorAll('#results-filters .filter-chip[data-filter]').forEach(chip => {
+        chip.addEventListener('click', function() {
+            const filter = this.getAttribute('data-filter');
+            handleResultsFilter(filter, this);
+        });
+    });
+
+    // Recherche par date pour matchs à venir
     const dateSearchBtn = document.getElementById('date-search-button');
     if (dateSearchBtn) {
         dateSearchBtn.onclick = () => {
@@ -224,12 +246,37 @@ function initMatchesEventListeners() {
         };
     }
 
+    // Recherche par date pour résultats
+    const resultsDateSearchBtn = document.getElementById('results-date-search-button');
+    if (resultsDateSearchBtn) {
+        resultsDateSearchBtn.onclick = () => {
+            const date = document.getElementById('results-date').value;
+            if (date) {
+                searchResultsByDate(date);
+            } else {
+                showNotification('Veuillez sélectionner une date');
+            }
+        };
+    }
+
     // Actualiser les matchs
     const refreshMatches = document.getElementById('refresh-matches');
     if (refreshMatches) {
         refreshMatches.onclick = () => {
             console.log('🔄 Actualisation matchs');
-            loadUpcomingMatches();
+            // Recharger selon l'onglet actif
+            const activeTab = document.querySelector('.tab.active');
+            if (activeTab && activeTab.getAttribute('data-tab') === 'results') {
+                loadRecentResults();
+            } else {
+                // Recharger avec le filtre actuel et le terme de recherche
+                const searchTerm = document.getElementById('match-search').value.trim();
+                if (searchTerm) {
+                    searchMatches(searchTerm);
+                } else {
+                    handleMatchFilter(currentMatchFilter);
+                }
+            }
         };
     }
 
@@ -242,6 +289,65 @@ function initMatchesEventListeners() {
     }
 }
 
+function initMatchesTabs() {
+    const tabs = document.querySelectorAll('.tab');
+    
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            const tabType = this.getAttribute('data-tab');
+            switchMatchesTab(tabType, this);
+        });
+    });
+}
+
+function switchMatchesTab(tabType, element) {
+    // Mettre à jour les onglets actifs
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    element.classList.add('active');
+    
+    // Mettre à jour le titre de section
+    const sectionTitle = document.getElementById('matches-section-title');
+    
+    // Gérer l'affichage des filtres selon l'onglet
+    const upcomingFilters = document.getElementById('upcoming-filters');
+    const resultsFilters = document.getElementById('results-filters');
+    const upcomingDatePicker = document.getElementById('date-picker-container');
+    const resultsDatePicker = document.getElementById('results-date-picker-container');
+    
+    if (tabType === 'upcoming') {
+        sectionTitle.textContent = 'Matchs à venir';
+        // Afficher les filtres matchs à venir
+        if (upcomingFilters) upcomingFilters.style.display = 'flex';
+        if (resultsFilters) resultsFilters.style.display = 'none';
+        if (upcomingDatePicker) upcomingDatePicker.style.display = 'none';
+        if (resultsDatePicker) resultsDatePicker.style.display = 'none';
+        
+        // Activer le filtre "À venir" par défaut
+        document.querySelectorAll('#upcoming-filters .filter-chip').forEach(chip => chip.classList.remove('active'));
+        const upcomingChip = document.querySelector('#upcoming-filters .filter-chip[data-filter="upcoming"]');
+        if (upcomingChip) upcomingChip.classList.add('active');
+        currentMatchFilter = 'upcoming';
+        loadUpcomingMatches();
+        
+    } else if (tabType === 'results') {
+        sectionTitle.textContent = 'Résultats';
+        // Afficher les filtres résultats
+        if (upcomingFilters) upcomingFilters.style.display = 'none';
+        if (resultsFilters) resultsFilters.style.display = 'flex';
+        if (upcomingDatePicker) upcomingDatePicker.style.display = 'none';
+        if (resultsDatePicker) resultsDatePicker.style.display = 'none';
+        
+        // Activer le filtre "Récent" par défaut
+        document.querySelectorAll('#results-filters .filter-chip').forEach(chip => chip.classList.remove('active'));
+        const recentChip = document.querySelector('#results-filters .filter-chip[data-filter="recent"]');
+        if (recentChip) recentChip.classList.add('active');
+        loadRecentResults();
+    }
+}
+
+// FONCTIONS POUR LES MATCHS À VENIR
 async function loadUpcomingMatches() {
     try {
         showLoading('matches-results', 'Chargement des matchs à venir...');
@@ -262,6 +368,74 @@ async function loadUpcomingMatches() {
     } catch (error) {
         console.error('❌ Erreur loadUpcomingMatches:', error);
         showError('matches-results', 'Erreur lors du chargement des matchs');
+    }
+}
+
+function handleMatchFilter(filter, element = null) {
+    console.log('🎯 Filtre matchs:', filter);
+    
+    // Récupérer le terme de recherche actuel
+    const searchTerm = document.getElementById('match-search').value.trim();
+    
+    // Si un élément est fourni, mettre à jour les classes actives
+    if (element) {
+        document.querySelectorAll('#upcoming-filters .filter-chip').forEach(chip => {
+            chip.classList.remove('active');
+        });
+        element.classList.add('active');
+    }
+    
+    // Gérer l'affichage du sélecteur de date
+    const datePicker = document.getElementById('date-picker-container');
+    if (filter === 'calendar') {
+        datePicker.style.display = datePicker.style.display === 'none' ? 'block' : 'none';
+        return;
+    } else {
+        datePicker.style.display = 'none';
+    }
+
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    
+    switch(filter) {
+        case 'today':
+            if (searchTerm) {
+                searchMatchesByDateAndTerm(todayStr, searchTerm);
+            } else {
+                searchMatchesByDate(todayStr);
+            }
+            break;
+        case 'weekend':
+            // Calculer le week-end (samedi et dimanche)
+            const dayOfWeek = today.getDay();
+            const saturday = new Date(today);
+            saturday.setDate(today.getDate() + (6 - dayOfWeek));
+            const sunday = new Date(today);
+            sunday.setDate(today.getDate() + (7 - dayOfWeek));
+            
+            const saturdayStr = saturday.toISOString().split('T')[0];
+            const sundayStr = sunday.toISOString().split('T')[0];
+            
+            if (searchTerm) {
+                searchMatchesByDateRangeAndTerm(saturdayStr, sundayStr, searchTerm);
+            } else {
+                searchMatchesByDateRange(saturdayStr, sundayStr);
+            }
+            break;
+        case 'upcoming':
+            if (searchTerm) {
+                searchMatches(searchTerm);
+            } else {
+                loadUpcomingMatches();
+            }
+            break;
+        case 'nearby':
+            if (searchTerm) {
+                searchMatchesNearbyWithTerm(searchTerm);
+            } else {
+                loadMatchesNearby();
+            }
+            break;
     }
 }
 
@@ -323,29 +497,60 @@ async function loadMatchesNearby() {
 async function searchMatches(searchTerm) {
     try {
         console.log('🔍 Recherche matchs:', searchTerm);
-        showLoading('matches-results', `Recherche de matchs pour "${searchTerm}"...`);
         
-        const today = new Date().toISOString().split('T')[0];
-        const { data, error } = await supabase
-            .from('matches')
-            .select('*')
-            .or(`home_team.ilike.%${searchTerm}%,away_team.ilike.%${searchTerm}%,venue_name.ilike.%${searchTerm}%,city.ilike.%${searchTerm}%`)
-            .gte('date', today)
-            .order('date', { ascending: true })
-            .order('time', { ascending: true })
-            .limit(100);
+        // Déterminer l'onglet actif
+        const activeTab = document.querySelector('.tab.active');
+        const isResultsTab = activeTab && activeTab.getAttribute('data-tab') === 'results';
+        
+        if (isResultsTab) {
+            // Recherche dans les résultats
+            showLoading('matches-results', `Recherche de résultats pour "${searchTerm}"...`);
+            
+            const today = new Date();
+            const sevenDaysAgo = new Date();
+            sevenDaysAgo.setDate(today.getDate() - 7);
+            const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+            
+            const { data, error } = await supabase
+                .from('matches')
+                .select('*')
+                .or(`home_team.ilike.%${searchTerm}%,away_team.ilike.%${searchTerm}%,venue_name.ilike.%${searchTerm}%,city.ilike.%${searchTerm}%`)
+                .gte('date', sevenDaysAgoStr)
+                .lte('date', today.toISOString().split('T')[0])
+                .not('score_home', 'is', null)
+                .not('score_away', 'is', null)
+                .order('date', { ascending: false })
+                .order('time', { ascending: false })
+                .limit(100);
 
-        if (error) {
-            console.error('❌ Erreur Supabase:', error);
-            throw error;
+            if (error) throw error;
+
+            console.log('✅ Résultats de recherche trouvés:', data?.length || 0);
+            displayMatchResults(data, 'matches-results', `Résultats pour "${searchTerm}"`);
+            
+        } else {
+            // Recherche dans les matchs à venir (comportement existant)
+            showLoading('matches-results', `Recherche de matchs pour "${searchTerm}"...`);
+            
+            const today = new Date().toISOString().split('T')[0];
+            const { data, error } = await supabase
+                .from('matches')
+                .select('*')
+                .or(`home_team.ilike.%${searchTerm}%,away_team.ilike.%${searchTerm}%,venue_name.ilike.%${searchTerm}%,city.ilike.%${searchTerm}%`)
+                .gte('date', today)
+                .order('date', { ascending: true })
+                .order('time', { ascending: true })
+                .limit(100);
+
+            if (error) throw error;
+
+            console.log('✅ Matchs trouvés:', data?.length || 0);
+            displayMatches(data, 'matches-results', `Résultats pour "${searchTerm}"`);
         }
-
-        console.log('✅ Résultats matchs trouvés:', data?.length || 0);
-        displayMatches(data, 'matches-results', `Résultats pour "${searchTerm}"`);
         
     } catch (error) {
-        console.error('❌ Erreur recherche matchs:', error);
-        showError('matches-results', 'Erreur lors de la recherche de matchs: ' + error.message);
+        console.error('❌ Erreur recherche:', error);
+        showError('matches-results', 'Erreur lors de la recherche: ' + error.message);
     }
 }
 
@@ -372,74 +577,33 @@ async function searchMatchesByDate(date) {
     }
 }
 
-function handleMatchFilter(filter, element) {
-    console.log('🎯 Filtre matchs:', filter);
-    
-    // Récupérer le terme de recherche actuel
-    const searchTerm = document.getElementById('match-search').value.trim();
-    
-    // Gérer l'affichage du sélecteur de date
-    const datePicker = document.getElementById('date-picker-container');
-    if (filter === 'calendar') {
-        datePicker.style.display = 'block';
-        // Ne pas changer la classe active pour le calendrier
-        return;
-    } else {
-        datePicker.style.display = 'none';
-    }
-    
-    // Mettre à jour les filtres actifs
-    document.querySelectorAll('.filter-chip[data-filter]').forEach(chip => {
-        chip.classList.remove('active');
-    });
-    element.classList.add('active');
+async function searchMatchesByDateRange(startDate, endDate) {
+    try {
+        console.log('📅 Recherche matchs du', startDate, 'au', endDate);
+        showLoading('matches-results', `Recherche des matchs du ${formatDateForDisplay(startDate)} au ${formatDateForDisplay(endDate)}...`);
+        
+        const { data, error } = await supabase
+            .from('matches')
+            .select('*')
+            .gte('date', startDate)
+            .lte('date', endDate)
+            .order('date', { ascending: true })
+            .order('time', { ascending: true })
+            .limit(100);
 
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    
-    switch(filter) {
-        case 'today':
-            if (searchTerm) {
-                searchMatchesByDateAndTerm(todayStr, searchTerm);
-            } else {
-                searchMatchesByDate(todayStr);
-            }
-            break;
-        case 'weekend':
-            // Calculer le week-end (samedi et dimanche)
-            const dayOfWeek = today.getDay();
-            const saturday = new Date(today);
-            saturday.setDate(today.getDate() + (6 - dayOfWeek));
-            const sunday = new Date(today);
-            sunday.setDate(today.getDate() + (7 - dayOfWeek));
-            
-            const saturdayStr = saturday.toISOString().split('T')[0];
-            const sundayStr = sunday.toISOString().split('T')[0];
-            
-            if (searchTerm) {
-                searchMatchesByDateRangeAndTerm(saturdayStr, sundayStr, searchTerm);
-            } else {
-                searchMatchesByDateRange(saturdayStr, sundayStr);
-            }
-            break;
-        case 'upcoming':
-            if (searchTerm) {
-                searchMatches(searchTerm); // Utilise la recherche normale qui filtre par date
-            } else {
-                loadUpcomingMatches();
-            }
-            break;
-        case 'nearby':
-            if (searchTerm) {
-                searchMatchesNearbyWithTerm(searchTerm);
-            } else {
-                loadMatchesNearby();
-            }
-            break;
+        if (error) throw error;
+
+        console.log('✅ Matchs trouvés pour cette période:', data?.length || 0);
+        const title = `Matchs du ${formatDateForDisplay(startDate)} au ${formatDateForDisplay(endDate)}`;
+        displayMatches(data, 'matches-results', title);
+        
+    } catch (error) {
+        console.error('❌ Erreur recherche par période:', error);
+        showError('matches-results', 'Erreur lors de la recherche');
     }
 }
 
-// Nouvelle fonction pour rechercher par date ET terme
+// NOUVELLES FONCTIONS POUR LA COMBINAISON FILTRE + RECHERCHE
 async function searchMatchesByDateAndTerm(date, searchTerm) {
     try {
         console.log('📅🔍 Recherche matchs pour:', date, 'avec terme:', searchTerm);
@@ -464,7 +628,6 @@ async function searchMatchesByDateAndTerm(date, searchTerm) {
     }
 }
 
-// Nouvelle fonction pour rechercher par période ET terme
 async function searchMatchesByDateRangeAndTerm(startDate, endDate, searchTerm) {
     try {
         console.log('📅🔍 Recherche matchs du', startDate, 'au', endDate, 'avec terme:', searchTerm);
@@ -483,7 +646,8 @@ async function searchMatchesByDateRangeAndTerm(startDate, endDate, searchTerm) {
         if (error) throw error;
 
         console.log('✅ Matchs trouvés pour cette période et terme:', data?.length || 0);
-        displayMatches(data, 'matches-results', `Matchs du ${formatDateForDisplay(startDate)} au ${formatDateForDisplay(endDate)} pour "${searchTerm}"`);
+        const title = `Matchs du ${formatDateForDisplay(startDate)} au ${formatDateForDisplay(endDate)} pour "${searchTerm}"`;
+        displayMatches(data, 'matches-results', title);
         
     } catch (error) {
         console.error('❌ Erreur recherche par période et terme:', error);
@@ -491,7 +655,6 @@ async function searchMatchesByDateRangeAndTerm(startDate, endDate, searchTerm) {
     }
 }
 
-// Nouvelle fonction pour rechercher les matchs près de chez moi AVEC terme
 async function searchMatchesNearbyWithTerm(searchTerm) {
     try {
         showLoading('matches-results', `Recherche des matchs près de vous pour "${searchTerm}"...`);
@@ -531,8 +694,8 @@ async function searchMatchesNearbyWithTerm(searchTerm) {
             .from('matches')
             .select('*')
             .in('venue_name', venueNames)
+            .or(`home_team.ilike.%${searchTerm}%,away_team.ilike.%${searchTerm}%`)
             .gte('date', today)
-            .or(`home_team.ilike.%${searchTerm}%,away_team.ilike.%${searchTerm}%,venue_name.ilike.%${searchTerm}%,city.ilike.%${searchTerm}%`)
             .order('date', { ascending: true })
             .order('time', { ascending: true })
             .limit(100);
@@ -540,7 +703,7 @@ async function searchMatchesNearbyWithTerm(searchTerm) {
         if (matchesError) throw matchesError;
 
         console.log(`🎯 ${matchesData?.length || 0} matchs trouvés près de vous pour "${searchTerm}"`);
-        displayMatches(matchesData || [], 'matches-results', `Matchs près de vous (10km) pour "${searchTerm}"`);
+        displayMatches(matchesData || [], 'matches-results', `Matchs près de vous pour "${searchTerm}"`);
         
     } catch (error) {
         console.error('❌ Erreur searchMatchesNearbyWithTerm:', error);
@@ -548,35 +711,416 @@ async function searchMatchesNearbyWithTerm(searchTerm) {
     }
 }
 
-// Mettre à jour aussi la fonction searchMatchesByDate pour le calendrier
-async function searchMatchesByDate(date) {
+// FONCTIONS POUR LES RÉSULTATS
+function handleResultsFilter(filter, element) {
+    console.log('🎯 Filtre résultats:', filter);
+    
+    // Récupérer le terme de recherche actuel
+    const searchTerm = document.getElementById('match-search').value.trim();
+    
+    // Gérer l'affichage du sélecteur de date
+    const datePicker = document.getElementById('results-date-picker-container');
+    if (filter === 'results-date') {
+        datePicker.style.display = datePicker.style.display === 'none' ? 'block' : 'none';
+        return;
+    } else {
+        datePicker.style.display = 'none';
+    }
+    
+    // Mettre à jour les filtres actifs
+    document.querySelectorAll('#results-filters .filter-chip').forEach(chip => {
+        chip.classList.remove('active');
+    });
+    element.classList.add('active');
+
+    const today = new Date();
+    
+    switch(filter) {
+        case 'recent':
+            if (searchTerm) {
+                searchResultsWithTerm(searchTerm);
+            } else {
+                loadRecentResults();
+            }
+            break;
+        case 'last-weekend':
+            // Week-end dernier (samedi et dimanche de la semaine dernière)
+            const lastSaturday = new Date(today);
+            lastSaturday.setDate(today.getDate() - today.getDay() - 1);
+            const lastSunday = new Date(today);
+            lastSunday.setDate(today.getDate() - today.getDay());
+            
+            const lastSaturdayStr = lastSaturday.toISOString().split('T')[0];
+            const lastSundayStr = lastSunday.toISOString().split('T')[0];
+            
+            if (searchTerm) {
+                searchResultsByDateRangeAndTerm(lastSaturdayStr, lastSundayStr, searchTerm);
+            } else {
+                searchResultsByDateRange(lastSaturdayStr, lastSundayStr);
+            }
+            break;
+        case 'last-week':
+            // 7 derniers jours complets
+            const lastWeekStart = new Date(today);
+            lastWeekStart.setDate(today.getDate() - 7);
+            const lastWeekEnd = new Date(today);
+            lastWeekEnd.setDate(today.getDate() - 1);
+            
+            const lastWeekStartStr = lastWeekStart.toISOString().split('T')[0];
+            const lastWeekEndStr = lastWeekEnd.toISOString().split('T')[0];
+            
+            if (searchTerm) {
+                searchResultsByDateRangeAndTerm(lastWeekStartStr, lastWeekEndStr, searchTerm);
+            } else {
+                searchResultsByDateRange(lastWeekStartStr, lastWeekEndStr);
+            }
+            break;
+        case 'two-weeks-ago':
+            // Week-end d'il y a 2 semaines
+            const twoWeeksAgoSaturday = new Date(today);
+            twoWeeksAgoSaturday.setDate(today.getDate() - today.getDay() - 8);
+            const twoWeeksAgoSunday = new Date(today);
+            twoWeeksAgoSunday.setDate(today.getDate() - today.getDay() - 7);
+            
+            const twoWeeksAgoSaturdayStr = twoWeeksAgoSaturday.toISOString().split('T')[0];
+            const twoWeeksAgoSundayStr = twoWeeksAgoSunday.toISOString().split('T')[0];
+            
+            if (searchTerm) {
+                searchResultsByDateRangeAndTerm(twoWeeksAgoSaturdayStr, twoWeeksAgoSundayStr, searchTerm);
+            } else {
+                searchResultsByDateRange(twoWeeksAgoSaturdayStr, twoWeeksAgoSundayStr);
+            }
+            break;
+    }
+}
+
+async function loadRecentResults() {
+    try {
+        showLoading('matches-results', 'Chargement des résultats...');
+        
+        const today = new Date();
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+        
+        const { data, error } = await supabase
+            .from('matches')
+            .select('*')
+            .gte('date', sevenDaysAgoStr)
+            .lte('date', today.toISOString().split('T')[0])
+            .not('score_home', 'is', null)
+            .not('score_away', 'is', null)
+            .order('date', { ascending: false })
+            .order('time', { ascending: false })
+            .limit(100);
+
+        if (error) throw error;
+
+        displayMatchResults(data, 'matches-results', 'Résultats récents');
+        
+    } catch (error) {
+        console.error('❌ Erreur loadRecentResults:', error);
+        showError('matches-results', 'Erreur lors du chargement des résultats');
+    }
+}
+
+async function searchResultsByDate(date) {
     try {
         const searchTerm = document.getElementById('match-search').value.trim();
         
         if (searchTerm) {
             // Si un terme de recherche est présent, utiliser la fonction combinée
-            return searchMatchesByDateAndTerm(date, searchTerm);
+            return searchResultsByDateAndTerm(date, searchTerm);
         }
 
-        console.log('📅 Recherche matchs pour:', date);
-        showLoading('matches-results', `Recherche des matchs du ${formatDateForDisplay(date)}...`);
+        console.log('📅 Recherche résultats pour:', date);
+        showLoading('matches-results', `Recherche des résultats du ${formatDateForDisplay(date)}...`);
         
         const { data, error } = await supabase
             .from('matches')
             .select('*')
             .eq('date', date)
-            .order('time', { ascending: true })
+            .not('score_home', 'is', null)
+            .not('score_away', 'is', null)
+            .order('time', { ascending: false })
             .limit(100);
 
         if (error) throw error;
 
-        console.log('✅ Matchs trouvés pour cette date:', data?.length || 0);
-        displayMatches(data, 'matches-results', `Matchs du ${formatDateForDisplay(date)}`);
+        console.log('✅ Résultats trouvés pour cette date:', data?.length || 0);
+        displayMatchResults(data, 'matches-results', `Résultats du ${formatDateForDisplay(date)}`);
         
     } catch (error) {
-        console.error('❌ Erreur recherche par date:', error);
+        console.error('❌ Erreur recherche résultats par date:', error);
         showError('matches-results', 'Erreur lors de la recherche par date');
     }
+}
+
+// Fonction pour rechercher dans les résultats par date avec terme
+async function searchResultsByDateAndTerm(date, searchTerm) {
+    try {
+        console.log('📅🔍 Recherche résultats pour:', date, 'avec terme:', searchTerm);
+        showLoading('matches-results', `Recherche des résultats du ${formatDateForDisplay(date)} pour "${searchTerm}"...`);
+        
+        const { data, error } = await supabase
+            .from('matches')
+            .select('*')
+            .eq('date', date)
+            .or(`home_team.ilike.%${searchTerm}%,away_team.ilike.%${searchTerm}%,venue_name.ilike.%${searchTerm}%,city.ilike.%${searchTerm}%`)
+            .not('score_home', 'is', null)
+            .not('score_away', 'is', null)
+            .order('time', { ascending: false })
+            .limit(100);
+
+        if (error) throw error;
+
+        console.log('✅ Résultats trouvés pour cette date et terme:', data?.length || 0);
+        displayMatchResults(data, 'matches-results', `Résultats du ${formatDateForDisplay(date)} pour "${searchTerm}"`);
+        
+    } catch (error) {
+        console.error('❌ Erreur recherche résultats par date et terme:', error);
+        showError('matches-results', 'Erreur lors de la recherche');
+    }
+}
+
+async function searchResultsByDateRange(startDate, endDate) {
+    try {
+        console.log('📅 Recherche résultats du', startDate, 'au', endDate);
+        showLoading('matches-results', `Recherche des résultats du ${formatDateForDisplay(startDate)} au ${formatDateForDisplay(endDate)}...`);
+        
+        const { data, error } = await supabase
+            .from('matches')
+            .select('*')
+            .gte('date', startDate)
+            .lte('date', endDate)
+            .not('score_home', 'is', null)
+            .not('score_away', 'is', null)
+            .order('date', { ascending: false })
+            .order('time', { ascending: false })
+            .limit(100);
+
+        if (error) throw error;
+
+        console.log('✅ Résultats trouvés pour cette période:', data?.length || 0);
+        const title = `Résultats du ${formatDateForDisplay(startDate)} au ${formatDateForDisplay(endDate)}`;
+        displayMatchResults(data, 'matches-results', title);
+        
+    } catch (error) {
+        console.error('❌ Erreur recherche résultats par période:', error);
+        showError('matches-results', 'Erreur lors de la recherche');
+    }
+}
+
+// FONCTIONS D'AFFICHAGE
+function displayMatches(matches, containerId, title = 'Matchs') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    if (!matches || matches.length === 0) {
+        container.innerHTML = `
+            <div class="no-results">
+                <div class="no-results-icon">
+                    <i class="ri-calendar-line"></i>
+                </div>
+                <div>Aucun match trouvé</div>
+                <div style="margin-top: 8px; font-size: 14px; color: var(--text-muted);">
+                    Aucun match programmé
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div style="margin-bottom: 16px; color: var(--text-primary); font-size: 16px; font-weight: 600;">
+            ${title} (${matches.length})
+        </div>
+        ${matches.map(match => {
+            const matchDate = new Date(match.date);
+            const formattedDate = matchDate.toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long'
+            });
+            
+            // Formater l'adresse avec code postal et ville
+            const venueInfo = formatVenueInfo(match);
+            
+            // Formater l'heure pour enlever les secondes
+            const formattedTime = formatTime(match.time);
+            
+            return `
+            <div class="match-card">
+                <div class="match-header">
+                    <div class="match-date">${formattedDate}</div>
+                    <div class="match-level">${match.level || 'Niveau inconnu'}</div>
+                </div>
+                <div class="teams-container">
+                    <div class="team">
+                        <div class="team-logo">
+                            ${match.home_logo ? `<img src="${match.home_logo}" alt="${match.home_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
+                            <div class="logo-fallback" style="${match.home_logo ? 'display: none;' : 'display: flex;'}">🏠</div>
+                        </div>
+                        <div class="team-name">${match.home_team}</div>
+                    </div>
+                    <div class="vs">VS</div>
+                    <div class="team">
+                        <div class="team-logo">
+                            ${match.away_logo ? `<img src="${match.away_logo}" alt="${match.away_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
+                            <div class="logo-fallback" style="${match.away_logo ? 'display: none;' : 'display: flex;'}">✈️</div>
+                        </div>
+                        <div class="team-name">${match.away_team}</div>
+                    </div>
+                </div>
+                <div class="match-footer">
+                    <div class="match-venue">
+                        ${formattedTime || 'Heure non précisée'} - ${venueInfo}
+                    </div>
+                </div>
+            </div>
+            `;
+        }).join('')}
+    `;
+}
+
+function displayMatchResults(matches, containerId, title = 'Résultats') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    if (!matches || matches.length === 0) {
+        container.innerHTML = `
+            <div class="no-results">
+                <div class="no-results-icon">
+                    <i class="ri-trophy-line"></i>
+                </div>
+                <div>Aucun résultat trouvé</div>
+                <div style="margin-top: 8px; font-size: 14px; color: var(--text-muted);">
+                    Aucun match terminé pour cette période
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div style="margin-bottom: 16px; color: var(--text-primary); font-size: 16px; font-weight: 600;">
+            ${title} (${matches.length})
+        </div>
+        ${matches.map(match => {
+            const matchDate = new Date(match.date);
+            const formattedDate = matchDate.toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long'
+            });
+            
+            // Déterminer le gagnant pour un style sobre
+            const homeScore = parseInt(match.score_home) || 0;
+            const awayScore = parseInt(match.score_away) || 0;
+            const homeWon = homeScore > awayScore;
+            const awayWon = awayScore > homeScore;
+            
+            // Formater l'adresse avec code postal et ville
+            const venueInfo = formatVenueInfo(match);
+            
+            // Formater l'heure pour enlever les secondes
+            const formattedTime = formatTime(match.time);
+            
+            return `
+            <div class="match-card">
+                <div class="match-header">
+                    <div class="match-date">${formattedDate}</div>
+                    <div class="match-level">${match.level || 'Niveau inconnu'}</div>
+                </div>
+                <div class="teams-container">
+                    <div class="team ${homeWon ? 'winner' : ''}">
+                        <div class="team-logo">
+                            ${match.home_logo ? 
+                                `<img src="${match.home_logo}" alt="${match.home_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+                                ''
+                            }
+                            <div class="logo-fallback" style="${match.home_logo ? 'display: none;' : 'display: flex;'}">🏠</div>
+                        </div>
+                        <div class="team-name">${match.home_team}</div>
+                        <div class="score-container ${homeWon ? 'winner-score' : ''}">
+                            <div class="match-score">${match.score_home || '-'}</div>
+                        </div>
+                    </div>
+                    <div class="vs">VS</div>
+                    <div class="team ${awayWon ? 'winner' : ''}">
+                        <div class="team-logo">
+                            ${match.away_logo ? 
+                                `<img src="${match.away_logo}" alt="${match.away_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+                                ''
+                            }
+                            <div class="logo-fallback" style="${match.away_logo ? 'display: none;' : 'display: flex;'}">✈️</div>
+                        </div>
+                        <div class="team-name">${match.away_team}</div>
+                        <div class="score-container ${awayWon ? 'winner-score' : ''}">
+                            <div class="match-score">${match.score_away || '-'}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="match-footer">
+                    <div class="match-venue">${formattedTime} - ${venueInfo}</div>
+                </div>
+            </div>
+            `;
+        }).join('')}
+    `;
+}
+
+// Fonction pour formater l'heure (enlever les secondes)
+function formatTime(timeString) {
+    if (!timeString) return '';
+    
+    // Si le format est HH:MM:SS, on prend seulement HH:MM
+    if (timeString.includes(':')) {
+        const parts = timeString.split(':');
+        if (parts.length >= 2) {
+            return `${parts[0]}:${parts[1]}`;
+        }
+    }
+    
+    return timeString;
+}
+
+// Fonction pour formater les informations de lieu
+function formatVenueInfo(match) {
+    const parts = [];
+    
+    // Nom de la salle
+    if (match.venue_name && match.venue_name !== 'Inconnu') {
+        parts.push(match.venue_name);
+    }
+    
+    // Code postal et ville (uniquement si différents du nom de la salle)
+    if (match.postal_code && match.city) {
+        const cityInfo = `${match.postal_code} ${match.city}`;
+        // Éviter les doublons si le nom de la salle contient déjà la ville
+        if (!match.venue_name || !match.venue_name.includes(match.city)) {
+            parts.push(cityInfo);
+        }
+    } else if (match.city && (!match.venue_name || !match.venue_name.includes(match.city))) {
+        parts.push(match.city);
+    } else if (match.postal_code && (!match.venue_name || !match.venue_name.includes(match.postal_code))) {
+        parts.push(match.postal_code);
+    }
+    
+    // Si aucune information n'est disponible
+    if (parts.length === 0) {
+        return 'Lieu à confirmer';
+    }
+    
+    return parts.join(' - ');
+}
+
+function showMatchesList() {
+    const matchesResults = document.getElementById('matches-results');
+    const matchDetailView = document.getElementById('match-detail-view');
+    
+    if (matchesResults) matchesResults.style.display = 'block';
+    if (matchDetailView) matchDetailView.style.display = 'none';
 }
 
 function formatDateForDisplay(dateStr) {
@@ -586,14 +1130,6 @@ function formatDateForDisplay(dateStr) {
         day: 'numeric',
         month: 'long'
     });
-}
-
-function showMatchesList() {
-    const matchesResults = document.getElementById('matches-results');
-    const matchDetailView = document.getElementById('match-detail-view');
-    
-    if (matchesResults) matchesResults.style.display = 'block';
-    if (matchDetailView) matchDetailView.style.display = 'none';
 }
 
 // FONCTIONS CARTE
@@ -905,6 +1441,24 @@ function displayVenues(venues, title = 'Salles') {
             const hasCoords = venue.latitude && venue.longitude;
             const distance = venue.distance ? `${venue.distance.toFixed(1)} km` : 'Distance inconnue';
             
+            // Formater l'adresse complète sans doublons
+            const addressParts = [];
+            if (venue.venue_address && venue.venue_address !== 'Inconnu') {
+                addressParts.push(venue.venue_address);
+            }
+            
+            // Ajouter code postal et ville seulement si différents de l'adresse
+            if (venue.postal_code && venue.city) {
+                const cityInfo = `${venue.postal_code} ${venue.city}`;
+                if (!venue.venue_address || !venue.venue_address.includes(venue.city)) {
+                    addressParts.push(cityInfo);
+                }
+            } else if (venue.city && (!venue.venue_address || !venue.venue_address.includes(venue.city))) {
+                addressParts.push(venue.city);
+            }
+            
+            const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : 'Non disponible';
+            
             return `
             <div class="card venue-card" 
                  data-venue-name="${venue.venue_name}" 
@@ -917,8 +1471,7 @@ function displayVenues(venues, title = 'Salles') {
                     ${venue.distance ? `<div class="card-badge">${distance}</div>` : ''}
                 </div>
                 <div class="card-details">
-                    <div><strong>Adresse:</strong> ${venue.venue_address || 'Non disponible'}</div>
-                    <div><strong>Ville:</strong> ${venue.city || 'Non disponible'}</div>
+                    <div><strong>Adresse:</strong> ${fullAddress}</div>
                     ${venue.distance ? `<div><strong>Distance:</strong> ${distance}</div>` : ''}
                     <div style="margin-top: 8px; color: var(--primary); font-size: 12px;">
                         <i class="ri-map-pin-line"></i> Voir sur la carte
@@ -1092,9 +1645,26 @@ function displayVenueDetails(venue, matches, teams, venueName, venueAddress = nu
     `;
 
     if (venue) {
+        // Formater l'adresse complète sans doublons
+        const addressParts = [];
+        if (venue.venue_address && venue.venue_address !== 'Inconnu') {
+            addressParts.push(venue.venue_address);
+        }
+        
+        // Ajouter code postal et ville seulement si différents de l'adresse
+        if (venue.postal_code && venue.city) {
+            const cityInfo = `${venue.postal_code} ${venue.city}`;
+            if (!venue.venue_address || !venue.venue_address.includes(venue.city)) {
+                addressParts.push(cityInfo);
+            }
+        } else if (venue.city && (!venue.venue_address || !venue.venue_address.includes(venue.city))) {
+            addressParts.push(venue.city);
+        }
+        
+        const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : 'Non disponible';
+        
         html += `
-                <div><strong>Adresse:</strong> ${venue.venue_address || 'Non disponible'}</div>
-                <div><strong>Ville:</strong> ${venue.city || 'Non disponible'}</div>
+                <div><strong>Adresse:</strong> ${fullAddress}</div>
         `;
         
         if (venue.latitude && venue.longitude) {
@@ -1119,7 +1689,7 @@ function displayVenueDetails(venue, matches, teams, venueName, venueAddress = nu
                 
                 L.marker([parseFloat(venue.latitude), parseFloat(venue.longitude)])
                     .addTo(map)
-                    .bindPopup(`<strong>${venueName}</strong><br>${venue.venue_address || ''}`)
+                    .bindPopup(`<strong>${venueName}</strong><br>${fullAddress}`)
                     .openPopup();
             }
         }
@@ -1154,6 +1724,12 @@ function displayVenueDetails(venue, matches, teams, venueName, venueAddress = nu
                 month: 'long'
             });
             
+            // Utiliser la fonction formatVenueInfo pour les matchs
+            const venueInfo = formatVenueInfo(match);
+            
+            // Formater l'heure pour enlever les secondes
+            const formattedTime = formatTime(match.time);
+            
             return `
             <div class="match-card">
                 <div class="match-header">
@@ -1184,7 +1760,7 @@ function displayVenueDetails(venue, matches, teams, venueName, venueAddress = nu
                     </div>
                 </div>
                 <div class="match-footer">
-                    <div class="match-venue">${match.time || 'Heure non précisée'}</div>
+                    <div class="match-venue">${formattedTime || 'Heure non précisée'} - ${venueInfo}</div>
                 </div>
             </div>
             `;
@@ -1382,76 +1958,6 @@ async function loadTodayMatches() {
     }
 }
 
-function displayMatches(matches, containerId, title = 'Matchs') {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    if (!matches || matches.length === 0) {
-        container.innerHTML = `
-            <div class="no-results">
-                <div class="no-results-icon">
-                    <i class="ri-calendar-line"></i>
-                </div>
-                <div>Aucun match trouvé</div>
-                <div style="margin-top: 8px; font-size: 14px; color: var(--text-muted);">
-                    Aucun match programmé
-                </div>
-            </div>
-        `;
-        return;
-    }
-
-    container.innerHTML = `
-        <div style="margin-bottom: 16px; color: var(--text-primary); font-size: 16px; font-weight: 600;">
-            ${title} (${matches.length})
-        </div>
-        ${matches.map(match => {
-            const matchDate = new Date(match.date);
-            const formattedDate = matchDate.toLocaleDateString('fr-FR', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-            
-            const isFavorite = isItemFavorite('team', match.home_team) || isItemFavorite('team', match.away_team);
-            
-            return `
-            <div class="match-card" data-match-id="${match.id}">
-                <div class="match-header">
-                    <div class="match-date">${formattedDate}</div>
-                    <div class="match-level">${match.level || 'Niveau inconnu'}</div>
-                </div>
-                <div class="teams-container">
-                    <div class="team">
-                        <div class="team-logo">
-                            ${match.home_logo ? `<img src="${match.home_logo}" alt="${match.home_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
-                            <div class="logo-fallback" style="${match.home_logo ? 'display: none;' : 'display: flex;'}">🏠</div>
-                        </div>
-                        <div class="team-name">${match.home_team}</div>
-                    </div>
-                    <div class="vs">VS</div>
-                    <div class="team">
-                        <div class="team-logo">
-                            ${match.away_logo ? `<img src="${match.away_logo}" alt="${match.away_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
-                            <div class="logo-fallback" style="${match.away_logo ? 'display: none;' : 'display: flex;'}">✈️</div>
-                        </div>
-                        <div class="team-name">${match.away_team}</div>
-                    </div>
-                </div>
-                <div class="match-footer">
-                    <div class="match-venue">${match.venue_name || 'Lieu à confirmer'}</div>
-                    <button class="favorite-btn ${isFavorite ? 'active' : ''}" 
-                            onclick="toggleFavorite('team', '${match.home_team}', '${match.home_team}', 'team')">
-                        <i class="ri-star-${isFavorite ? 'fill' : 'line'}"></i>
-                    </button>
-                </div>
-            </div>
-            `;
-        }).join('')}
-    `;
-}
-
 // FONCTIONS CLUBS
 async function extractClubsFromTeams() {
     try {
@@ -1633,20 +2139,70 @@ function showNotification(message) {
     }, 3000);
 }
 
-// Ajouter l'animation CSS pour les notifications
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideDown {
-        from { 
-            opacity: 0; 
-            transform: translateX(-50%) translateY(-20px); 
-        }
-        to { 
-            opacity: 1; 
-            transform: translateX(-50%) translateY(0); 
-        }
+// Fonction pour rechercher dans les résultats avec un terme
+async function searchResultsWithTerm(searchTerm) {
+    try {
+        console.log('🔍 Recherche résultats avec terme:', searchTerm);
+        showLoading('matches-results', `Recherche de résultats pour "${searchTerm}"...`);
+        
+        const today = new Date();
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(today.getDate() - 7);
+        const sevenDaysAgoStr = sevenDaysAgo.toISOString().split('T')[0];
+        
+        const { data, error } = await supabase
+            .from('matches')
+            .select('*')
+            .or(`home_team.ilike.%${searchTerm}%,away_team.ilike.%${searchTerm}%,venue_name.ilike.%${searchTerm}%,city.ilike.%${searchTerm}%`)
+            .gte('date', sevenDaysAgoStr)
+            .lte('date', today.toISOString().split('T')[0])
+            .not('score_home', 'is', null)
+            .not('score_away', 'is', null)
+            .order('date', { ascending: false })
+            .order('time', { ascending: false })
+            .limit(100);
+
+        if (error) throw error;
+
+        console.log('✅ Résultats trouvés avec terme:', data?.length || 0);
+        displayMatchResults(data, 'matches-results', `Résultats pour "${searchTerm}"`);
+        
+    } catch (error) {
+        console.error('❌ Erreur recherche résultats avec terme:', error);
+        showError('matches-results', 'Erreur lors de la recherche');
     }
-`;
+}
+
+// Fonction pour rechercher dans les résultats par période avec terme
+async function searchResultsByDateRangeAndTerm(startDate, endDate, searchTerm) {
+    try {
+        console.log('📅🔍 Recherche résultats du', startDate, 'au', endDate, 'avec terme:', searchTerm);
+        showLoading('matches-results', `Recherche des résultats du ${formatDateForDisplay(startDate)} au ${formatDateForDisplay(endDate)} pour "${searchTerm}"...`);
+        
+        const { data, error } = await supabase
+            .from('matches')
+            .select('*')
+            .gte('date', startDate)
+            .lte('date', endDate)
+            .or(`home_team.ilike.%${searchTerm}%,away_team.ilike.%${searchTerm}%,venue_name.ilike.%${searchTerm}%,city.ilike.%${searchTerm}%`)
+            .not('score_home', 'is', null)
+            .not('score_away', 'is', null)
+            .order('date', { ascending: false })
+            .order('time', { ascending: false })
+            .limit(100);
+
+        if (error) throw error;
+
+        console.log('✅ Résultats trouvés pour cette période et terme:', data?.length || 0);
+        const title = `Résultats du ${formatDateForDisplay(startDate)} au ${formatDateForDisplay(endDate)} pour "${searchTerm}"`;
+        displayMatchResults(data, 'matches-results', title);
+        
+    } catch (error) {
+        console.error('❌ Erreur recherche résultats par période et terme:', error);
+        showError('matches-results', 'Erreur lors de la recherche');
+    }
+}
+
 document.head.appendChild(style);
 
 // Vérifier les nouveaux matchs toutes les heures

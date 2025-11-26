@@ -20,6 +20,7 @@
     --bg-secondary: #f3f0ff;
     --bg-card: #ffffff;
     --bg-surface: #f8f7ff;
+    --surface-secondary: #f1f5f9;
     
     --text-primary: #2e1065;
     --text-secondary: #5b21b6;
@@ -504,6 +505,7 @@ main {
     margin: 20px 0;
     overflow-x: auto;
     padding-bottom: 8px;
+    transition: opacity 0.3s ease;
 }
 
 .filter-chip {
@@ -742,4 +744,199 @@ main {
         width: 48px;
         height: 48px;
     }
+}
+
+/* Onglets */
+.tabs-container {
+    display: flex;
+    background: var(--bg-surface);
+    border-radius: 16px;
+    padding: 4px;
+    margin: 16px 0;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+}
+
+.tab {
+    flex: 1;
+    padding: 12px 16px;
+    text-align: center;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.tab.active {
+    background: var(--gradient-primary);
+    color: white;
+    box-shadow: var(--shadow);
+}
+
+.tab:hover:not(.active) {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* Styles pour les résultats - version sobre */
+.winner .team-name {
+    font-weight: 700;
+}
+
+.winner-score .match-score {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.match-status {
+    color: var(--text-muted) !important;
+}
+
+/* Nouveaux styles pour les scores */
+.score-container {
+    background: var(--surface-secondary);
+    border-radius: 12px;
+    padding: 8px 12px;
+    min-width: 50px;
+    text-align: center;
+    border: 2px solid var(--border);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-top: 8px;
+}
+
+.match-score {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.winner-score {
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.winner-score .match-score {
+    color: white;
+}
+
+/* Animation pour les notifications */
+@keyframes slideDown {
+    from { 
+        opacity: 0; 
+        transform: translateX(-50%) translateY(-20px); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateX(-50%) translateY(0); 
+    }
+}
+
+/* Styles pour les équipes dans les résultats */
+.team.winner .team-name {
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* Amélioration de l'affichage des matchs avec scores */
+.teams-container .team {
+    position: relative;
+}
+
+/* Ajustement pour l'affichage des scores dans les résultats */
+.match-card .teams-container {
+    align-items: stretch;
+}
+
+.match-card .team {
+    justify-content: space-between;
+    gap: 8px;
+}
+
+/* Responsive pour les onglets */
+@media (max-width: 480px) {
+    .tabs-container {
+        margin: 12px 0;
+        padding: 3px;
+    }
+    
+    .tab {
+        padding: 10px 12px;
+        font-size: 13px;
+        gap: 4px;
+    }
+    
+    .tab i {
+        font-size: 16px;
+    }
+    
+    /* Ajustement des scores sur mobile */
+    .score-container {
+        min-width: 45px;
+        padding: 6px 10px;
+    }
+    
+    .match-score {
+        font-size: 16px;
+    }
+}
+
+@media (max-width: 360px) {
+    .tab {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+    
+    .tab i {
+        font-size: 14px;
+    }
+    
+    /* Ajustement supplémentaire pour petits écrans */
+    .score-container {
+        min-width: 40px;
+        padding: 5px 8px;
+    }
+    
+    .match-score {
+        font-size: 15px;
+    }
+}
+
+/* Styles pour les cartes de match avec scores améliorés */
+.match-card .teams-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.match-card .team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    min-height: 120px;
+    justify-content: space-between;
+}
+
+.match-card .team-logo {
+    margin-bottom: 8px;
+}
+
+.match-card .team-name {
+    margin-bottom: 8px;
+    min-height: 2.8em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Amélioration de l'espacement pour les scores */
+.match-card .score-container {
+    margin-top: auto;
 }
