@@ -1,7 +1,6 @@
 // Configuration Supabase
 const SUPABASE_URL = 'https://hjrjcfloqdhbkpjpsdhn.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhqcmpjZmxvcWRoYmtwanBzZGhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMxMDk2ODAsImV4cCI6MjA3ODY4NTY4MH0.zL3zexnUKamkJ0ZL_oHjX0AgcPxMBXIKamR0AVoR_0Q';
-
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Variables globales
@@ -2479,4 +2478,5 @@ document.addEventListener('DOMContentLoaded', function() {
 document.head.appendChild(style);
 
 // Vérifier les nouveaux matchs toutes les heures
+
 setInterval(checkForNewMatches, 60 * 60 * 1000);
