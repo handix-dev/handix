@@ -442,6 +442,16 @@ main {
     margin-bottom: 8px;
 }
 
+.teams-container .team {
+    justify-content: flex-start;
+    gap: 1px;
+}
+
+.team .score-container:empty,
+.team .score-container[style*="hidden"] {
+    display: none;
+}
+
 .vs {
     font-size: 16px;
     font-weight: 800;
@@ -1203,7 +1213,7 @@ main {
     }
 }
 
-@media (max-width: 360px) {
+@media (max-width: 455px) {
     .stats-grid {
         grid-template-columns: 1fr;
     }
@@ -1266,7 +1276,8 @@ main {
     }
     
     .match-level {
-        align-self: flex-start;
+        align-self: center;
+        margin-top: 5px;
     }
 }
 
