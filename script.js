@@ -1,6 +1,7 @@
 // Configuration Supabase
 const SUPABASE_URL = 'https://hjrjcfloqdhbkpjpsdhn.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhqcmpjZmxvcWRoYmtwanBzZGhuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjMxMDk2ODAsImV4cCI6MjA3ODY4NTY4MH0.zL3zexnUKamkJ0ZL_oHjX0AgcPxMBXIKamR0AVoR_0Q';
+
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Variables globales
@@ -10,6 +11,7 @@ let clubsData = [];
 let venuesMarkers = [];
 let currentPage = 'home';
 let currentMatchFilter = 'upcoming'; // Pour garder en mémoire le filtre actuel
+let currentVenueDetails = null; // Stocke les détails de la salle courante
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', function() {
@@ -1044,6 +1046,9 @@ function displayMatchResults(matches, containerId, title = 'Résultats') {
             // Vérifier si une feuille de match est disponible
             const hasFdm = match.fdm_url && match.fdm_url !== '';
             
+            // CORRECTION : Échapper correctement l'URL
+            const fdmUrl = hasFdm ? match.fdm_url.replace(/'/g, "\\'") : '';
+            
             return `
             <div class="match-card">
                 <div class="match-header">
@@ -1082,7 +1087,7 @@ function displayMatchResults(matches, containerId, title = 'Résultats') {
                 <div class="match-footer">
                     <div class="match-venue">${formattedTime} - ${venueInfo}</div>
                     ${hasFdm ? `
-                    <button class="fdm-button" onclick="openFdmModal('${match.fdm_url}')" title="Voir la feuille de match">
+                    <button class="fdm-button" onclick="openFdmModal('${fdmUrl}')" title="Voir la feuille de match">
                         <i class="ri-file-text-line"></i>
                     </button>
                     ` : ''}
@@ -1540,6 +1545,7 @@ function centerMapOnVenue(lat, lng, venueName, venueAddress = null) {
     }
 }
 
+// FONCTIONS POUR LA GESTION DES SALLES AVEC TOGGLE MATCHS/RÉSULTATS
 async function loadVenueDetails(venueName, venueAddress = null) {
     try {
         showLoading('venue-detail-container', `Chargement des détails pour ${venueName}...`);
@@ -1549,6 +1555,12 @@ async function loadVenueDetails(venueName, venueAddress = null) {
         
         if (venuesResults) venuesResults.style.display = 'none';
         if (venueDetailView) venueDetailView.style.display = 'block';
+
+        // Stocker les détails de la salle courante
+        currentVenueDetails = {
+            venueName: venueName,
+            venueAddress: venueAddress
+        };
 
         let venueQuery = supabase
             .from('matches')
@@ -1567,26 +1579,6 @@ async function loadVenueDetails(venueName, venueAddress = null) {
 
         if (venueError) throw venueError;
 
-        const today = new Date().toISOString().split('T')[0];
-        
-        let matchesQuery = supabase
-            .from('matches')
-            .select('*')
-            .gte('date', today)
-            .order('date', { ascending: true })
-            .order('time', { ascending: true })
-            .limit(10);
-
-        if (venueAddress && venueAddress !== 'null' && venueAddress !== '') {
-            matchesQuery = matchesQuery.eq('venue_address', venueAddress);
-        } else {
-            matchesQuery = matchesQuery.eq('venue_name', venueName);
-        }
-
-        const { data: matchesData, error: matchesError } = await matchesQuery;
-
-        if (matchesError) throw matchesError;
-
         let teamsQuery = supabase
             .from('matches')
             .select('home_team')
@@ -1603,16 +1595,316 @@ async function loadVenueDetails(venueName, venueAddress = null) {
         if (teamsError) throw teamsError;
 
         const venue = venueData && venueData.length > 0 ? venueData[0] : null;
-        const matches = matchesData || [];
-        
         const teams = analyzeMainClubsSimple(teamsData || []);
         
-        displayVenueDetails(venue, matches, teams, venueName, venueAddress);
+        displayVenueDetails(venue, teams, venueName, venueAddress);
+        
+        // Initialiser les onglets et charger les matchs à venir par défaut
+        initVenueMatchesTabs();
+        loadVenueUpcomingMatches();
         
     } catch (error) {
         console.error('❌ Erreur loadVenueDetails:', error);
         showError('venue-detail-container', 'Erreur lors du chargement des détails de la salle');
     }
+}
+
+// Fonction pour initialiser les onglets des matchs de salle
+function initVenueMatchesTabs() {
+    const upcomingTab = document.getElementById('venue-upcoming-tab');
+    const resultsTab = document.getElementById('venue-results-tab');
+    
+    if (upcomingTab) {
+        upcomingTab.onclick = () => switchVenueMatchesTab('upcoming');
+    }
+    
+    if (resultsTab) {
+        resultsTab.onclick = () => switchVenueMatchesTab('results');
+    }
+}
+
+// Fonction pour changer d'onglet dans la vue salle
+function switchVenueMatchesTab(tabType) {
+    const upcomingTab = document.getElementById('venue-upcoming-tab');
+    const resultsTab = document.getElementById('venue-results-tab');
+    const matchesTitle = document.getElementById('venue-matches-title');
+    
+    // Mettre à jour les onglets actifs
+    if (upcomingTab) upcomingTab.classList.remove('active');
+    if (resultsTab) resultsTab.classList.remove('active');
+    
+    if (tabType === 'upcoming') {
+        if (upcomingTab) upcomingTab.classList.add('active');
+        if (matchesTitle) matchesTitle.textContent = 'Matchs à venir';
+        loadVenueUpcomingMatches();
+    } else if (tabType === 'results') {
+        if (resultsTab) resultsTab.classList.add('active');
+        if (matchesTitle) matchesTitle.textContent = 'Résultats';
+        loadVenueRecentResults();
+    }
+}
+
+// Fonction pour charger les matchs à venir d'une salle
+async function loadVenueUpcomingMatches() {
+    try {
+        if (!currentVenueDetails) return;
+        
+        showLoading('venue-matches-results', 'Chargement des matchs à venir...');
+        
+        const today = new Date().toISOString().split('T')[0];
+        
+        let matchesQuery = supabase
+            .from('matches')
+            .select('*')
+            .gte('date', today)
+            .order('date', { ascending: true })
+            .order('time', { ascending: true })
+            .limit(20);
+
+        // Filtrer par venue_address
+        if (currentVenueDetails.venueAddress && currentVenueDetails.venueAddress !== 'null' && currentVenueDetails.venueAddress !== '') {
+            matchesQuery = matchesQuery.eq('venue_address', currentVenueDetails.venueAddress);
+        } else {
+            matchesQuery = matchesQuery.eq('venue_name', currentVenueDetails.venueName);
+        }
+
+        const { data: matchesData, error: matchesError } = await matchesQuery;
+
+        if (matchesError) throw matchesError;
+
+        console.log(`🎯 ${matchesData?.length || 0} matchs à venir trouvés pour la salle`);
+        displayVenueMatches(matchesData || [], 'venue-matches-results', 'Matchs à venir');
+        
+    } catch (error) {
+        console.error('❌ Erreur loadVenueUpcomingMatches:', error);
+        showError('venue-matches-results', 'Erreur lors du chargement des matchs à venir');
+    }
+}
+
+// Fonction pour charger les résultats récents d'une salle
+async function loadVenueRecentResults() {
+    try {
+        if (!currentVenueDetails) return;
+        
+        showLoading('venue-matches-results', 'Chargement des résultats...');
+        
+        const today = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30); // 30 derniers jours pour plus de résultats
+        
+        const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+        
+        let matchesQuery = supabase
+            .from('matches')
+            .select('*')
+            .gte('date', thirtyDaysAgoStr)
+            .lte('date', today.toISOString().split('T')[0])
+            .not('score_home', 'is', null)
+            .not('score_away', 'is', null)
+            .order('date', { ascending: false })
+            .order('time', { ascending: false })
+            .limit(20);
+
+        // Filtrer par venue_address
+        if (currentVenueDetails.venueAddress && currentVenueDetails.venueAddress !== 'null' && currentVenueDetails.venueAddress !== '') {
+            matchesQuery = matchesQuery.eq('venue_address', currentVenueDetails.venueAddress);
+        } else {
+            matchesQuery = matchesQuery.eq('venue_name', currentVenueDetails.venueName);
+        }
+
+        const { data: matchesData, error: matchesError } = await matchesQuery;
+
+        if (matchesError) throw matchesError;
+
+        console.log(`🎯 ${matchesData?.length || 0} résultats trouvés pour la salle`);
+        displayVenueMatchResults(matchesData || [], 'venue-matches-results', 'Résultats récents');
+        
+    } catch (error) {
+        console.error('❌ Erreur loadVenueRecentResults:', error);
+        showError('venue-matches-results', 'Erreur lors du chargement des résultats');
+    }
+}
+
+// Fonction pour afficher les matchs d'une salle (version matchs à venir)
+function displayVenueMatches(matches, containerId, title = 'Matchs') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    if (!matches || matches.length === 0) {
+        container.innerHTML = `
+            <div class="no-results">
+                <div class="no-results-icon">
+                    <i class="ri-calendar-line"></i>
+                </div>
+                <div>Aucun match à venir</div>
+                <div style="margin-top: 8px; font-size: 14px; color: var(--text-muted);">
+                    Aucun match programmé dans cette salle
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div style="margin-bottom: 16px; color: var(--text-primary); font-size: 16px; font-weight: 600;">
+            ${title} (${matches.length})
+        </div>
+        ${matches.map(match => {
+            const matchDate = new Date(match.date);
+            const formattedDate = matchDate.toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long'
+            });
+            
+            const venueInfo = formatVenueInfo(match);
+            const formattedTime = formatTime(match.time);
+            
+            return `
+            <div class="match-card">
+                <div class="match-header">
+                    <div class="match-date">${formattedDate}</div>
+                    <div class="match-level">${match.level || 'Niveau inconnu'}</div>
+                </div>
+                <div class="teams-container">
+                    <div class="team">
+                        <div class="team-logo">
+                            ${match.home_logo ? 
+                                `<img src="${match.home_logo}" alt="${match.home_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+                                ''
+                            }
+                            <div class="logo-fallback" style="${match.home_logo ? 'display: none;' : 'display: flex;'}">🏠</div>
+                        </div>
+                        <div class="team-name">${match.home_team}</div>
+                        <div class="score-container" style="visibility: hidden;">
+                            <div class="match-score">-</div>
+                        </div>
+                    </div>
+                    <div class="vs">VS</div>
+                    <div class="team">
+                        <div class="team-logo">
+                            ${match.away_logo ? 
+                                `<img src="${match.away_logo}" alt="${match.away_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+                                ''
+                            }
+                            <div class="logo-fallback" style="${match.away_logo ? 'display: none;' : 'display: flex;'}">✈️</div>
+                        </div>
+                        <div class="team-name">${match.away_team}</div>
+                        <div class="score-container" style="visibility: hidden;">
+                            <div class="match-score">-</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="match-footer">
+                    <div class="match-venue">
+                        ${formattedTime || 'Heure non précisée'} - ${venueInfo}
+                    </div>
+                </div>
+            </div>
+            `;
+        }).join('')}
+    `;
+}
+
+// Fonction pour afficher les résultats d'une salle
+function displayVenueMatchResults(matches, containerId, title = 'Résultats') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    if (!matches || matches.length === 0) {
+        container.innerHTML = `
+            <div class="no-results">
+                <div class="no-results-icon">
+                    <i class="ri-trophy-line"></i>
+                </div>
+                <div>Aucun résultat trouvé</div>
+                <div style="margin-top: 8px; font-size: 14px; color: var(--text-muted);">
+                    Aucun match terminé dans cette salle récemment
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div style="margin-bottom: 16px; color: var(--text-primary); font-size: 16px; font-weight: 600;">
+            ${title} (${matches.length})
+        </div>
+        ${matches.map((match, index) => {
+            const matchDate = new Date(match.date);
+            const formattedDate = matchDate.toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long'
+            });
+            
+            const homeScore = parseInt(match.score_home) || 0;
+            const awayScore = parseInt(match.score_away) || 0;
+            const homeWon = homeScore > awayScore;
+            const awayWon = awayScore > homeScore;
+            
+            const venueInfo = formatVenueInfo(match);
+            const formattedTime = formatTime(match.time);
+            
+            const hasFdm = match.fdm_url && match.fdm_url !== '';
+            
+            return `
+            <div class="match-card" data-match-index="${index}">
+                <div class="match-header">
+                    <div class="match-date">${formattedDate}</div>
+                    <div class="match-level">${match.level || 'Niveau inconnu'}</div>
+                </div>
+                <div class="teams-container">
+                    <div class="team ${homeWon ? 'winner' : ''}">
+                        <div class="team-logo">
+                            ${match.home_logo ? 
+                                `<img src="${match.home_logo}" alt="${match.home_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+                                ''
+                            }
+                            <div class="logo-fallback" style="${match.home_logo ? 'display: none;' : 'display: flex;'}">🏠</div>
+                        </div>
+                        <div class="team-name">${match.home_team}</div>
+                        <div class="score-container ${homeWon ? 'winner-score' : ''}">
+                            <div class="match-score">${match.score_home || '-'}</div>
+                        </div>
+                    </div>
+                    <div class="vs">VS</div>
+                    <div class="team ${awayWon ? 'winner' : ''}">
+                        <div class="team-logo">
+                            ${match.away_logo ? 
+                                `<img src="${match.away_logo}" alt="${match.away_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+                                ''
+                            }
+                            <div class="logo-fallback" style="${match.away_logo ? 'display: none;' : 'display: flex;'}">✈️</div>
+                        </div>
+                        <div class="team-name">${match.away_team}</div>
+                        <div class="score-container ${awayWon ? 'winner-score' : ''}">
+                            <div class="match-score">${match.score_away || '-'}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="match-footer">
+                    <div class="match-venue">${formattedTime} - ${venueInfo}</div>
+                    ${hasFdm ? `
+                    <button class="fdm-button" data-fdm-url="${match.fdm_url}" title="Voir la feuille de match">
+                        <i class="ri-file-text-line"></i>
+                    </button>
+                    ` : ''}
+                </div>
+            </div>
+            `;
+        }).join('')}
+    `;
+
+    // Ajouter les écouteurs d'événements pour les boutons FDM
+    container.querySelectorAll('.fdm-button').forEach(button => {
+        button.addEventListener('click', function() {
+            const fdmUrl = this.getAttribute('data-fdm-url');
+            if (fdmUrl) {
+                openFdmModal(fdmUrl);
+            }
+        });
+    });
 }
 
 // Fonction pour analyser les clubs principaux - UNIQUEMENT LE PLUS FRÉQUENT
@@ -1644,7 +1936,7 @@ function analyzeMainClubsSimple(teamsData) {
     return mostFrequentClub ? [mostFrequentClub] : [];
 }
 
-function displayVenueDetails(venue, matches, teams, venueName, venueAddress = null) {
+function displayVenueDetails(venue, teams, venueName, venueAddress = null) {
     const container = document.getElementById('venue-detail-container');
     if (!container) return;
     
@@ -1731,72 +2023,6 @@ function displayVenueDetails(venue, matches, teams, venueName, venueAddress = nu
 
     html += `</div></div>`;
 
-    if (matches.length > 0) {
-        html += `
-            <div class="section-header" style="margin-top: 32px;">
-                <div class="section-title">Matchs à venir</div>
-                <div class="section-link">${matches.length} matchs</div>
-            </div>
-        `;
-        
-        html += matches.map(match => {
-            const matchDate = new Date(match.date);
-            const formattedDate = matchDate.toLocaleDateString('fr-FR', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long'
-            });
-            
-            // Utiliser la fonction formatVenueInfo pour les matchs
-            const venueInfo = formatVenueInfo(match);
-            
-            // Formater l'heure pour enlever les secondes
-            const formattedTime = formatTime(match.time);
-            
-            return `
-            <div class="match-card">
-                <div class="match-header">
-                    <div class="match-date">${formattedDate}</div>
-                    <div class="match-level">${match.level || 'Niveau inconnu'}</div>
-                </div>
-                <div class="teams-container">
-                    <div class="team">
-                        <div class="team-logo">
-                            ${match.home_logo ? 
-                                `<img src="${match.home_logo}" alt="${match.home_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
-                                ''
-                            }
-                            <div class="logo-fallback" style="${match.home_logo ? 'display: none;' : 'display: flex;'}">🏠</div>
-                        </div>
-                        <div class="team-name">${match.home_team}</div>
-                    </div>
-                    <div class="vs">VS</div>
-                    <div class="team">
-                        <div class="team-logo">
-                            ${match.away_logo ? 
-                                `<img src="${match.away_logo}" alt="${match.away_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
-                                ''
-                            }
-                            <div class="logo-fallback" style="${match.away_logo ? 'display: none;' : 'display: flex;'}">✈️</div>
-                        </div>
-                        <div class="team-name">${match.away_team}</div>
-                    </div>
-                </div>
-                <div class="match-footer">
-                    <div class="match-venue">${formattedTime || 'Heure non précisée'} - ${venueInfo}</div>
-                </div>
-            </div>
-            `;
-        }).join('');
-    } else {
-        html += `
-            <div class="no-results" style="margin-top: 32px;">
-                <div class="no-results-icon">📅</div>
-                <div>Aucun match à venir dans cette salle</div>
-            </div>
-        `;
-    }
-
     container.innerHTML = html;
 }
 
@@ -1806,6 +2032,9 @@ function showVenuesList() {
     
     if (venuesResults) venuesResults.style.display = 'block';
     if (venueDetailView) venueDetailView.style.display = 'none';
+    
+    // Réinitialiser les détails de salle courante
+    currentVenueDetails = null;
 }
 
 function searchTeamMatches(teamName) {
@@ -2374,109 +2603,5 @@ function initFdmEvents() {
     });
 }
 
-// Modifiez la fonction displayMatchResults pour ajouter le bouton FDM
-function displayMatchResults(matches, containerId, title = 'Résultats') {
-    const container = document.getElementById(containerId);
-    if (!container) return;
-    
-    if (!matches || matches.length === 0) {
-        container.innerHTML = `
-            <div class="no-results">
-                <div class="no-results-icon">
-                    <i class="ri-trophy-line"></i>
-                </div>
-                <div>Aucun résultat trouvé</div>
-                <div style="margin-top: 8px; font-size: 14px; color: var(--text-muted);">
-                    Aucun match terminé pour cette période
-                </div>
-            </div>
-        `;
-        return;
-    }
-
-    container.innerHTML = `
-        <div style="margin-bottom: 16px; color: var(--text-primary); font-size: 16px; font-weight: 600;">
-            ${title} (${matches.length})
-        </div>
-        ${matches.map(match => {
-            const matchDate = new Date(match.date);
-            const formattedDate = matchDate.toLocaleDateString('fr-FR', {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long'
-            });
-            
-            // Déterminer le gagnant pour un style sobre
-            const homeScore = parseInt(match.score_home) || 0;
-            const awayScore = parseInt(match.score_away) || 0;
-            const homeWon = homeScore > awayScore;
-            const awayWon = awayScore > homeScore;
-            
-            // Formater l'adresse avec code postal et ville
-            const venueInfo = formatVenueInfo(match);
-            
-            // Formater l'heure pour enlever les secondes
-            const formattedTime = formatTime(match.time);
-            
-            // Vérifier si une feuille de match est disponible
-            const hasFdm = match.fdm_url && match.fdm_url !== '';
-            
-            return `
-            <div class="match-card">
-                <div class="match-header">
-                    <div class="match-date">${formattedDate}</div>
-                    <div class="match-level">${match.level || 'Niveau inconnu'}</div>
-                </div>
-                <div class="teams-container">
-                    <div class="team ${homeWon ? 'winner' : ''}">
-                        <div class="team-logo">
-                            ${match.home_logo ? 
-                                `<img src="${match.home_logo}" alt="${match.home_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
-                                ''
-                            }
-                            <div class="logo-fallback" style="${match.home_logo ? 'display: none;' : 'display: flex;'}">🏠</div>
-                        </div>
-                        <div class="team-name">${match.home_team}</div>
-                        <div class="score-container ${homeWon ? 'winner-score' : ''}">
-                            <div class="match-score">${match.score_home || '-'}</div>
-                        </div>
-                    </div>
-                    <div class="vs">VS</div>
-                    <div class="team ${awayWon ? 'winner' : ''}">
-                        <div class="team-logo">
-                            ${match.away_logo ? 
-                                `<img src="${match.away_logo}" alt="${match.away_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
-                                ''
-                            }
-                            <div class="logo-fallback" style="${match.away_logo ? 'display: none;' : 'display: flex;'}">✈️</div>
-                        </div>
-                        <div class="team-name">${match.away_team}</div>
-                        <div class="score-container ${awayWon ? 'winner-score' : ''}">
-                            <div class="match-score">${match.score_away || '-'}</div>
-                        </div>
-                    </div>
-                </div>
-                <div class="match-footer">
-                    <div class="match-venue">${formattedTime} - ${venueInfo}</div>
-                    ${hasFdm ? `
-                    <button class="fdm-button" onclick="openFdmModal('${match.fdm_url}')">
-                        <i class="ri-file-text-line"></i>
-                    </button>
-                    ` : ''}
-                </div>
-            </div>
-            `;
-        }).join('')}
-    `;
-}
-
-// Appelez initFdmEvents au chargement de la page
-document.addEventListener('DOMContentLoaded', function() {
-    initFdmEvents();
-});
-
-document.head.appendChild(style);
-
 // Vérifier les nouveaux matchs toutes les heures
-
 setInterval(checkForNewMatches, 60 * 60 * 1000);

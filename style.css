@@ -270,6 +270,7 @@ main {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+    margin-bottom: 5px;
 }
 
 .card:hover {
@@ -301,13 +302,16 @@ main {
 
 .card-title {
     font-weight: 700;
-    font-size: 18px;
+    font-size: 14px;
     flex: 1;
     color: var(--text-primary);
     min-width: 0;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    text-overflow: clip; /* ou 'initial' */
+    white-space: normal; /* permet le retour à la ligne */
+    display: -webkit-box;
+    -webkit-line-clamp: 2; /* limite à 2 lignes max */
+    -webkit-box-orient: vertical;
 }
 
 .card-badge {
@@ -376,7 +380,11 @@ main {
     font-size: 12px;
     font-weight: 700;
     flex-shrink: 0;
-    white-space: nowrap;
+    white-space: normal; /* permet le retour à la ligne */
+    word-break: break-word; /* évite le débordement */
+    text-align: center;
+    max-width: 100%; /* s'adapte à la largeur disponible */
+    box-sizing: border-box;
 }
 
 /* CORRECTION CRITIQUE : Teams container responsive */
