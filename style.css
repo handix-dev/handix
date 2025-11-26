@@ -516,7 +516,7 @@ main {
     background: var(--bg-card);
     display: flex;
     justify-content: space-around;
-    padding: 16px 0;
+    padding: 12px 0;
     border-top: 1px solid var(--border);
     box-shadow: 0 -4px 12px rgba(124, 58, 237, 0.1);
     z-index: 100;
@@ -532,7 +532,6 @@ main {
     transition: var(--transition);
     cursor: pointer;
     position: relative;
-    flex: 1;
     max-width: 25%;
     min-width: 0;
 }
