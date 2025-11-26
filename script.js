@@ -39,6 +39,8 @@ function detectCurrentPage() {
 
 async function initApp() {
     console.log('🚀 Initialisation de la page:', currentPage);
+
+    initFdmEvents();
     
     switch(currentPage) {
         case 'home':
@@ -1026,6 +1028,9 @@ function displayMatchResults(matches, containerId, title = 'Résultats') {
             // Formater l'heure pour enlever les secondes
             const formattedTime = formatTime(match.time);
             
+            // Vérifier si une feuille de match est disponible
+            const hasFdm = match.fdm_url && match.fdm_url !== '';
+            
             return `
             <div class="match-card">
                 <div class="match-header">
@@ -1063,6 +1068,11 @@ function displayMatchResults(matches, containerId, title = 'Résultats') {
                 </div>
                 <div class="match-footer">
                     <div class="match-venue">${formattedTime} - ${venueInfo}</div>
+                    ${hasFdm ? `
+                    <button class="fdm-button" onclick="openFdmModal('${match.fdm_url}')" title="Voir la feuille de match">
+                        <i class="ri-file-text-line"></i>
+                    </button>
+                    ` : ''}
                 </div>
             </div>
             `;
@@ -2202,6 +2212,255 @@ async function searchResultsByDateRangeAndTerm(startDate, endDate, searchTerm) {
         showError('matches-results', 'Erreur lors de la recherche');
     }
 }
+
+// Variables pour le modal FDM
+let currentPdfUrl = '';
+let currentZoom = 100;
+
+// Fonction pour ouvrir la feuille de match
+function openFdmModal(pdfUrl) {
+    const modal = document.getElementById('fdm-modal');
+    const pdfViewer = document.getElementById('fdm-pdf-viewer');
+    const loading = document.getElementById('fdm-loading');
+    const error = document.getElementById('fdm-error');
+    
+    if (!modal || !pdfViewer) {
+        console.error('Modal FDM non trouvé');
+        return;
+    }
+    
+    currentPdfUrl = pdfUrl;
+    currentZoom = 100;
+    
+    // Afficher le modal
+    modal.classList.add('active');
+    
+    // Masquer le contenu précédent
+    pdfViewer.style.display = 'none';
+    error.style.display = 'none';
+    loading.style.display = 'block';
+    
+    // Mettre à jour le zoom
+    updateZoomInfo();
+    
+    // Charger le PDF
+    setTimeout(() => {
+        if (pdfUrl) {
+            pdfViewer.src = pdfUrl;
+            pdfViewer.onload = () => {
+                loading.style.display = 'none';
+                pdfViewer.style.display = 'block';
+            };
+            pdfViewer.onerror = () => {
+                loading.style.display = 'none';
+                error.style.display = 'block';
+            };
+        } else {
+            loading.style.display = 'none';
+            error.style.display = 'block';
+        }
+    }, 500);
+}
+
+// Fonction pour fermer le modal
+function closeFdmModal() {
+    const modal = document.getElementById('fdm-modal');
+    const pdfViewer = document.getElementById('fdm-pdf-viewer');
+    
+    if (modal) {
+        modal.classList.remove('active');
+    }
+    
+    if (pdfViewer) {
+        pdfViewer.src = '';
+    }
+    
+    currentPdfUrl = '';
+    currentZoom = 100;
+}
+
+// Fonction pour zoomer
+function zoomPdf(direction) {
+    const pdfViewer = document.getElementById('fdm-pdf-viewer');
+    
+    if (direction === 'in') {
+        currentZoom = Math.min(currentZoom + 25, 200);
+    } else if (direction === 'out') {
+        currentZoom = Math.max(currentZoom - 25, 50);
+    }
+    
+    if (pdfViewer) {
+        pdfViewer.style.transform = `scale(${currentZoom / 100})`;
+        pdfViewer.style.transformOrigin = 'center center';
+    }
+    
+    updateZoomInfo();
+}
+
+// Fonction pour mettre à jour l'affichage du zoom
+function updateZoomInfo() {
+    const zoomInfo = document.getElementById('fdm-zoom-info');
+    if (zoomInfo) {
+        zoomInfo.textContent = `${currentZoom}%`;
+    }
+}
+
+// Fonction pour télécharger le PDF
+function downloadPdf() {
+    if (currentPdfUrl) {
+        const link = document.createElement('a');
+        link.href = currentPdfUrl;
+        link.download = 'feuille-de-match.pdf';
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+}
+
+// Initialisation des événements FDM
+function initFdmEvents() {
+    // Bouton de fermeture
+    const closeButton = document.getElementById('fdm-close-button');
+    if (closeButton) {
+        closeButton.addEventListener('click', closeFdmModal);
+    }
+    
+    // Fermeture en cliquant en dehors du modal
+    const modal = document.getElementById('fdm-modal');
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeFdmModal();
+            }
+        });
+    }
+    
+    // Contrôles de zoom
+    const zoomInButton = document.getElementById('fdm-zoom-in');
+    const zoomOutButton = document.getElementById('fdm-zoom-out');
+    const downloadButton = document.getElementById('fdm-download');
+    
+    if (zoomInButton) {
+        zoomInButton.addEventListener('click', () => zoomPdf('in'));
+    }
+    
+    if (zoomOutButton) {
+        zoomOutButton.addEventListener('click', () => zoomPdf('out'));
+    }
+    
+    if (downloadButton) {
+        downloadButton.addEventListener('click', downloadPdf);
+    }
+    
+    // Fermeture avec la touche Échap
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeFdmModal();
+        }
+    });
+}
+
+// Modifiez la fonction displayMatchResults pour ajouter le bouton FDM
+function displayMatchResults(matches, containerId, title = 'Résultats') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    if (!matches || matches.length === 0) {
+        container.innerHTML = `
+            <div class="no-results">
+                <div class="no-results-icon">
+                    <i class="ri-trophy-line"></i>
+                </div>
+                <div>Aucun résultat trouvé</div>
+                <div style="margin-top: 8px; font-size: 14px; color: var(--text-muted);">
+                    Aucun match terminé pour cette période
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div style="margin-bottom: 16px; color: var(--text-primary); font-size: 16px; font-weight: 600;">
+            ${title} (${matches.length})
+        </div>
+        ${matches.map(match => {
+            const matchDate = new Date(match.date);
+            const formattedDate = matchDate.toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long'
+            });
+            
+            // Déterminer le gagnant pour un style sobre
+            const homeScore = parseInt(match.score_home) || 0;
+            const awayScore = parseInt(match.score_away) || 0;
+            const homeWon = homeScore > awayScore;
+            const awayWon = awayScore > homeScore;
+            
+            // Formater l'adresse avec code postal et ville
+            const venueInfo = formatVenueInfo(match);
+            
+            // Formater l'heure pour enlever les secondes
+            const formattedTime = formatTime(match.time);
+            
+            // Vérifier si une feuille de match est disponible
+            const hasFdm = match.fdm_url && match.fdm_url !== '';
+            
+            return `
+            <div class="match-card">
+                <div class="match-header">
+                    <div class="match-date">${formattedDate}</div>
+                    <div class="match-level">${match.level || 'Niveau inconnu'}</div>
+                </div>
+                <div class="teams-container">
+                    <div class="team ${homeWon ? 'winner' : ''}">
+                        <div class="team-logo">
+                            ${match.home_logo ? 
+                                `<img src="${match.home_logo}" alt="${match.home_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+                                ''
+                            }
+                            <div class="logo-fallback" style="${match.home_logo ? 'display: none;' : 'display: flex;'}">🏠</div>
+                        </div>
+                        <div class="team-name">${match.home_team}</div>
+                        <div class="score-container ${homeWon ? 'winner-score' : ''}">
+                            <div class="match-score">${match.score_home || '-'}</div>
+                        </div>
+                    </div>
+                    <div class="vs">VS</div>
+                    <div class="team ${awayWon ? 'winner' : ''}">
+                        <div class="team-logo">
+                            ${match.away_logo ? 
+                                `<img src="${match.away_logo}" alt="${match.away_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+                                ''
+                            }
+                            <div class="logo-fallback" style="${match.away_logo ? 'display: none;' : 'display: flex;'}">✈️</div>
+                        </div>
+                        <div class="team-name">${match.away_team}</div>
+                        <div class="score-container ${awayWon ? 'winner-score' : ''}">
+                            <div class="match-score">${match.score_away || '-'}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="match-footer">
+                    <div class="match-venue">${formattedTime} - ${venueInfo}</div>
+                    ${hasFdm ? `
+                    <button class="fdm-button" onclick="openFdmModal('${match.fdm_url}')">
+                        <i class="ri-file-text-line"></i>
+                    </button>
+                    ` : ''}
+                </div>
+            </div>
+            `;
+        }).join('')}
+    `;
+}
+
+// Appelez initFdmEvents au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+    initFdmEvents();
+});
 
 document.head.appendChild(style);
 
