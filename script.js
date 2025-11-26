@@ -27,8 +27,8 @@ function detectCurrentPage() {
         currentPage = 'salles';
     } else if (page.includes('matchs.html')) {
         currentPage = 'matchs';
-    } else if (page.includes('favoris.html')) {
-        currentPage = 'favoris';
+    } else if (page.includes('profil.html')) {
+        currentPage = 'profil';
     } else if (page.includes('clubs.html')) {
         currentPage = 'clubs';
     } else {

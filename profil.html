@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Handix</title>
+
+    <!-- Librairies nécessaires -->
+    <script src="https://cdn.jsdelivr.net/npm/bcryptjs/dist/bcrypt.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-content">
+            <div class="logo">HANDIX</div>
+            <div class="user-profile">
+                <i class="ri-user-line"></i>
+            </div>
+        </div>
+        <div class="welcome-section">
+            <div class="welcome-text">Bienvenue sur</div>
+            <div class="welcome-title">Handix</div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Section Connexion/Inscription -->
+        <section id="auth" class="page">
+            <div class="auth-container">
+
+                <!-- ESPACE POUR LES MESSAGES AUTH -->
+                <!-- Le JS insère automatiquement .auth-message ici -->
+                
+                <!-- Tabs -->
+                <div class="tabs-container">
+                    <div class="tab active" data-tab="login">
+                        <i class="ri-login-box-line"></i>
+                        <span>Connexion</span>
+                    </div>
+                    <div class="tab" data-tab="signup">
+                        <i class="ri-user-add-line"></i>
+                        <span>Inscription</span>
+                    </div>
+                </div>
+
+                <!-- Formulaire de Connexion -->
+                <div id="login-form" class="auth-form active">
+                    <div class="form-group">
+                        <label for="login-email">Email</label>
+                        <input type="email" id="login-email" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password">Mot de passe</label>
+                        <input type="password" id="login-password" class="form-input" required>
+                    </div>
+                    <button id="login-button" class="auth-button">
+                        <span>Se connecter</span>
+                        <div class="button-spinner" style="display: none;">
+                            <div class="spinner"></div>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Formulaire d'Inscription -->
+                <div id="signup-form" class="auth-form">
+                    <div class="form-group">
+                        <label for="signup-email">Email</label>
+                        <input type="email" id="signup-email" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-username">Nom d'utilisateur</label>
+                        <input type="text" id="signup-username" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-password">Mot de passe</label>
+                        <input type="password" id="signup-password" class="form-input" required>
+                        <div class="password-requirements">
+                            <span>Minimum 6 caractères</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="signup-confirm-password">Confirmer le mot de passe</label>
+                        <input type="password" id="signup-confirm-password" class="form-input" required>
+                    </div>
+                    <button id="signup-button" class="auth-button">
+                        <span>Créer mon compte</span>
+                        <div class="button-spinner" style="display: none;">
+                            <div class="spinner"></div>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Profil après connexion -->
+                <div id="profile-section" class="profile-section" style="display: none;">
+                    <div class="profile-header">
+                        <div class="profile-avatar">
+                            <i class="ri-user-line"></i>
+                        </div>
+                        <div class="profile-info">
+                            <h2 id="profile-username"></h2>
+                            <p id="profile-email"></p>
+                        </div>
+                    </div>
+
+                    <!-- Modifier profil -->
+                    <div class="profile-card">
+                        <h3>Modifier mon profil</h3>
+                        <div class="form-group">
+                            <label for="edit-username">Nom d'utilisateur</label>
+                            <div class="input-with-button">
+                                <input type="text" id="edit-username" class="form-input">
+                                <button id="save-username" class="save-button">
+                                    <i class="ri-check-line"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Favoris -->
+                    <div class="profile-card">
+                        <h3>Mes favoris</h3>
+
+                        <div class="favorites-tabs">
+                            <div class="favorite-tab active" data-type="equipes">
+                                <i class="ri-team-line"></i>
+                                <span>Équipes</span>
+                            </div>
+                            <div class="favorite-tab" data-type="salles">
+                                <i class="ri-map-pin-line"></i>
+                                <span>Salles</span>
+                            </div>
+                            <div class="favorite-tab" data-type="clubs">
+                                <i class="ri-building-line"></i>
+                                <span>Clubs</span>
+                            </div>
+                        </div>
+
+                        <div id="favorites-list" class="favorites-list">
+                            <!-- Remplis par JS -->
+                        </div>
+                    </div>
+
+                    <!-- Déconnexion -->
+                    <button id="logout-button" class="logout-button">
+                        <i class="ri-logout-box-r-line"></i>
+                        <span>Se déconnecter</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Navigation -->
+    <nav class="bottom-nav">
+        <div class="nav-item" onclick="window.location.href='salles.html'">
+            <i class="ri-map-pin-line"></i>
+            <div class="nav-label">Salles</div>
+        </div>
+        <div class="nav-item" onclick="window.location.href='clubs.html'">
+            <i class="ri-team-line"></i>
+            <div class="nav-label">Clubs</div>
+        </div>
+        <div class="nav-item" onclick="window.location.href='home.html'">
+            <i class="ri-home-5-line"></i>
+            <div class="nav-label">Accueil</div>
+        </div>
+        <div class="nav-item" onclick="window.location.href='matchs.html'">
+            <i class="ri-trophy-line"></i>
+            <div class="nav-label">Matchs</div>
+        </div>
+        <div class="nav-item active" onclick="window.location.href='profil.html'">
+            <i class="ri-user-line"></i>
+            <div class="nav-label">Profil</div>
+        </div>
+    </nav>
+
+    <!-- Scripts -->
+    <script src="auth.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
