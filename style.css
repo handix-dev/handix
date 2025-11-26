@@ -103,6 +103,7 @@ header {
 .search-container {
     position: relative;
     margin: 24px 0;
+    width: 100%;
 }
 
 .search-input {
@@ -115,6 +116,8 @@ header {
     color: var(--text-primary);
     box-shadow: var(--shadow);
     transition: var(--transition);
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .search-input::placeholder {
@@ -156,6 +159,7 @@ header {
     grid-template-columns: repeat(4, 1fr);
     gap: 12px;
     margin: 24px 0;
+    width: 100%;
 }
 
 .quick-action {
@@ -167,6 +171,7 @@ header {
     transition: var(--transition);
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
+    max-width: 100%;
 }
 
 .quick-action:hover {
@@ -197,11 +202,17 @@ header {
 /* Sections */
 main {
     padding: 0 24px 100px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
 }
 
 .page {
     display: block;
     animation: fadeIn 0.4s ease;
+    width: 100%;
+    max-width: 100%;
 }
 
 @keyframes fadeIn {
@@ -214,6 +225,7 @@ main {
     justify-content: space-between;
     align-items: center;
     margin: 32px 0 20px;
+    width: 100%;
 }
 
 .section-title {
@@ -229,12 +241,24 @@ main {
     text-decoration: none;
 }
 
-/* Cards avec accents violets */
+/* CORRECTION CRITIQUE : Conteneur des résultats */
 .data-container {
     display: grid;
     gap: 16px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
 }
 
+#matches-results {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+/* Cards avec accents violets */
 .card {
     background: var(--bg-card);
     border-radius: 20px;
@@ -243,6 +267,9 @@ main {
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
     cursor: pointer;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .card:hover {
@@ -255,6 +282,7 @@ main {
     display: flex;
     align-items: center;
     margin-bottom: 16px;
+    width: 100%;
 }
 
 .card-icon {
@@ -268,6 +296,7 @@ main {
     margin-right: 16px;
     font-size: 24px;
     color: white;
+    flex-shrink: 0;
 }
 
 .card-title {
@@ -275,6 +304,10 @@ main {
     font-size: 18px;
     flex: 1;
     color: var(--text-primary);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .card-badge {
@@ -284,23 +317,31 @@ main {
     border-radius: 20px;
     font-size: 12px;
     font-weight: 700;
+    flex-shrink: 0;
 }
 
 .card-details {
     font-size: 14px;
     color: var(--text-secondary);
     line-height: 1.6;
+    width: 100%;
 }
 
-/* Match cards avec fond violet doux */
+/* CORRECTION CRITIQUE : Match cards responsive */
 .match-card {
     background: var(--bg-card);
     border-radius: 20px;
     padding: 20px;
-    margin-bottom: 16px;
+    margin-bottom: 1px;
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
     transition: var(--transition);
+    width: 100%;
+    max-width: 100vw; /* 100% de la largeur de la fenêtre */
+    box-sizing: border-box;
+    margin-left: auto;
+    margin-right: auto;
+    overflow: hidden; /* cache ce qui dépasse */
 }
 
 .match-card:hover {
@@ -311,14 +352,20 @@ main {
 .match-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 16px;
+    width: 100%;
+    gap: 12px;
 }
 
 .match-date {
     font-size: 14px;
     color: var(--text-muted);
     font-weight: 600;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .match-level {
@@ -328,13 +375,19 @@ main {
     border-radius: 12px;
     font-size: 12px;
     font-weight: 700;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
+/* CORRECTION CRITIQUE : Teams container responsive */
 .teams-container {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: space-between;
     margin: 20px 0;
+    width: 100%;
+    gap: 12px;
+    min-width: 0;
 }
 
 .team {
@@ -343,6 +396,9 @@ main {
     align-items: center;
     text-align: center;
     flex: 1;
+    min-width: 0;
+    min-height: 120px;
+    justify-content: space-between;
 }
 
 .team-logo {
@@ -353,9 +409,10 @@ main {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     overflow: hidden;
     border: 2px solid var(--border);
+    flex-shrink: 0;
 }
 
 .team-logo img {
@@ -375,13 +432,23 @@ main {
     font-weight: 600;
     color: var(--text-primary);
     line-height: 1.3;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    min-height: 2.8em;
+    margin-bottom: 8px;
 }
 
 .vs {
     font-size: 16px;
     font-weight: 800;
     color: var(--accent);
-    margin: 0 16px;
+    margin: 0 8px;
+    align-self: center;
+    flex-shrink: 0;
 }
 
 .match-footer {
@@ -391,11 +458,17 @@ main {
     margin-top: 16px;
     padding-top: 16px;
     border-top: 1px solid var(--border);
+    width: 100%;
+    gap: 12px;
 }
 
 .match-venue {
     font-size: 14px;
     color: var(--text-muted);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .favorite-btn {
@@ -411,6 +484,7 @@ main {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .favorite-btn:hover {
@@ -436,6 +510,7 @@ main {
     border-top: 1px solid var(--border);
     box-shadow: 0 -4px 12px rgba(124, 58, 237, 0.1);
     z-index: 100;
+    width: 100%;
 }
 
 .nav-item {
@@ -447,6 +522,9 @@ main {
     transition: var(--transition);
     cursor: pointer;
     position: relative;
+    flex: 1;
+    max-width: 25%;
+    min-width: 0;
 }
 
 .nav-item.active {
@@ -464,6 +542,7 @@ main {
     margin-bottom: 4px;
     transition: var(--transition);
     color: var(--text-muted);
+    flex-shrink: 0;
 }
 
 .nav-item.active .nav-icon {
@@ -475,27 +554,11 @@ main {
     font-weight: 600;
     transition: var(--transition);
     color: var(--text-muted);
-}
-
-/* Accueil au centre avec badge spécial */
-.nav-item[data-target="home"] {
-    position: relative;
-}
-
-.nav-item[data-target="home"]::before {
-    content: '';
-    position: absolute;
-    top: -8px;
-    width: 60px;
-    height: 4px;
-    background: var(--gradient-primary);
-    border-radius: 2px;
-    opacity: 0;
-    transition: var(--transition);
-}
-
-.nav-item[data-target="home"].active::before {
-    opacity: 1;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
 }
 
 /* Filtres avec violet */
@@ -506,6 +569,14 @@ main {
     overflow-x: auto;
     padding-bottom: 8px;
     transition: opacity 0.3s ease;
+    width: 100%;
+    max-width: 100%;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.filters-container::-webkit-scrollbar {
+    display: none;
 }
 
 .filter-chip {
@@ -519,6 +590,7 @@ main {
     cursor: pointer;
     transition: var(--transition);
     border: 1px solid var(--border);
+    flex-shrink: 0;
 }
 
 .filter-chip.active {
@@ -533,6 +605,7 @@ main {
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
     margin: 24px 0;
+    width: 100%;
 }
 
 .stat-card {
@@ -543,6 +616,8 @@ main {
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
     transition: var(--transition);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .stat-card:hover {
@@ -574,6 +649,7 @@ main {
     margin: 20px 0;
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
+    width: 100%;
 }
 
 #map {
@@ -591,6 +667,8 @@ main {
     box-shadow: var(--shadow);
     border-left: 4px solid var(--primary);
     transition: var(--transition);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .notification-item:hover {
@@ -606,25 +684,34 @@ main {
 .notification-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 8px;
+    width: 100%;
+    gap: 12px;
 }
 
 .notification-title {
     font-weight: 700;
     font-size: 16px;
     color: var(--text-primary);
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .notification-time {
     font-size: 12px;
     color: var(--text-muted);
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .notification-content {
     font-size: 14px;
     color: var(--text-secondary);
     line-height: 1.5;
+    width: 100%;
 }
 
 /* Loading et états */
@@ -632,6 +719,7 @@ main {
     text-align: center;
     padding: 40px 20px;
     color: var(--text-muted);
+    width: 100%;
 }
 
 .spinner {
@@ -657,12 +745,15 @@ main {
     text-align: center;
     margin: 20px 0;
     border: 1px solid var(--error);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .no-results {
     text-align: center;
     padding: 60px 20px;
     color: var(--text-muted);
+    width: 100%;
 }
 
 .no-results-icon {
@@ -675,6 +766,7 @@ main {
 /* Date picker */
 .date-picker-container {
     margin-bottom: 16px;
+    width: 100%;
 }
 
 .date-input {
@@ -685,6 +777,8 @@ main {
     font-size: 14px;
     background: var(--bg-card);
     color: var(--text-primary);
+    box-sizing: border-box;
+    max-width: 100%;
 }
 
 /* Back button */
@@ -703,47 +797,13 @@ main {
     gap: 8px;
     transition: var(--transition);
     border: 1px solid var(--border);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .back-button:hover {
     background: var(--gradient-primary);
     color: white;
-}
-
-/* Responsive */
-@media (max-width: 480px) {
-    main {
-        padding: 0 20px 100px;
-    }
-    
-    header {
-        padding: 20px;
-        border-radius: 0 0 20px 20px;
-    }
-    
-    .quick-actions {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .team-logo {
-        width: 56px;
-        height: 56px;
-    }
-}
-
-@media (max-width: 360px) {
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .quick-actions {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .team-logo {
-        width: 48px;
-        height: 48px;
-    }
 }
 
 /* Onglets */
@@ -755,6 +815,7 @@ main {
     margin: 16px 0;
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
+    width: 100%;
 }
 
 .tab {
@@ -771,6 +832,8 @@ main {
     align-items: center;
     justify-content: center;
     gap: 6px;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .tab.active {
@@ -784,7 +847,7 @@ main {
     color: var(--text-primary);
 }
 
-/* Styles pour les résultats - version sobre */
+/* Styles pour les résultats */
 .winner .team-name {
     font-weight: 700;
 }
@@ -798,7 +861,7 @@ main {
     color: var(--text-muted) !important;
 }
 
-/* Nouveaux styles pour les scores */
+/* CORRECTION CRITIQUE : Styles pour les scores */
 .score-container {
     background: var(--surface-secondary);
     border-radius: 12px;
@@ -807,7 +870,8 @@ main {
     text-align: center;
     border: 2px solid var(--border);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    margin-top: 8px;
+    margin-top: auto;
+    flex-shrink: 0;
 }
 
 .match-score {
@@ -835,110 +899,6 @@ main {
         opacity: 1; 
         transform: translateX(-50%) translateY(0); 
     }
-}
-
-/* Styles pour les équipes dans les résultats */
-.team.winner .team-name {
-    font-weight: 700;
-    color: var(--text-primary);
-}
-
-/* Amélioration de l'affichage des matchs avec scores */
-.teams-container .team {
-    position: relative;
-}
-
-/* Ajustement pour l'affichage des scores dans les résultats */
-.match-card .teams-container {
-    align-items: stretch;
-}
-
-.match-card .team {
-    justify-content: space-between;
-    gap: 8px;
-}
-
-/* Responsive pour les onglets */
-@media (max-width: 480px) {
-    .tabs-container {
-        margin: 12px 0;
-        padding: 3px;
-    }
-    
-    .tab {
-        padding: 10px 12px;
-        font-size: 13px;
-        gap: 4px;
-    }
-    
-    .tab i {
-        font-size: 16px;
-    }
-    
-    /* Ajustement des scores sur mobile */
-    .score-container {
-        min-width: 45px;
-        padding: 6px 10px;
-    }
-    
-    .match-score {
-        font-size: 16px;
-    }
-}
-
-@media (max-width: 360px) {
-    .tab {
-        padding: 8px 10px;
-        font-size: 12px;
-    }
-    
-    .tab i {
-        font-size: 14px;
-    }
-    
-    /* Ajustement supplémentaire pour petits écrans */
-    .score-container {
-        min-width: 40px;
-        padding: 5px 8px;
-    }
-    
-    .match-score {
-        font-size: 15px;
-    }
-}
-
-/* Styles pour les cartes de match avec scores améliorés */
-.match-card .teams-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-}
-
-.match-card .team {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    flex: 1;
-    min-height: 120px;
-    justify-content: space-between;
-}
-
-.match-card .team-logo {
-    margin-bottom: 8px;
-}
-
-.match-card .team-name {
-    margin-bottom: 8px;
-    min-height: 2.8em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* Amélioration de l'espacement pour les scores */
-.match-card .score-container {
-    margin-top: auto;
 }
 
 /* Modal pour les feuilles de match */
@@ -970,6 +930,7 @@ main {
     flex-direction: column;
     box-shadow: var(--shadow-lg);
     overflow: hidden;
+    max-width: 480px;
 }
 
 .fdm-modal-header {
@@ -980,11 +941,16 @@ main {
     border-bottom: 1px solid var(--border);
     background: var(--gradient-primary);
     color: white;
+    width: 100%;
 }
 
 .fdm-modal-title {
     font-size: 18px;
     font-weight: 700;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .fdm-close-button {
@@ -1001,6 +967,7 @@ main {
     cursor: pointer;
     transition: var(--transition);
     backdrop-filter: blur(10px);
+    flex-shrink: 0;
 }
 
 .fdm-close-button:hover {
@@ -1013,6 +980,7 @@ main {
     padding: 0;
     position: relative;
     overflow: hidden;
+    width: 100%;
 }
 
 .fdm-pdf-container {
@@ -1029,6 +997,7 @@ main {
     transform: translate(-50%, -50%);
     text-align: center;
     color: var(--text-muted);
+    width: 100%;
 }
 
 .fdm-error {
@@ -1039,10 +1008,11 @@ main {
     text-align: center;
     color: var(--error);
     padding: 20px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Bouton feuille de match */
-/* Bouton feuille de match - version icône seule */
 .fdm-button {
     background: var(--gradient-primary);
     color: white;
@@ -1057,9 +1027,9 @@ main {
     align-items: center;
     justify-content: center;
     box-shadow: var(--shadow);
-    margin-top: 8px;
     width: 40px;
     height: 40px;
+    flex-shrink: 0;
 }
 
 .fdm-button:hover {
@@ -1084,6 +1054,7 @@ main {
     padding: 16px;
     background: var(--bg-surface);
     border-top: 1px solid var(--border);
+    width: 100%;
 }
 
 .fdm-control-button {
@@ -1099,6 +1070,7 @@ main {
     transition: var(--transition);
     color: var(--text-primary);
     font-size: 16px;
+    flex-shrink: 0;
 }
 
 .fdm-control-button:hover {
@@ -1113,6 +1085,7 @@ main {
     font-weight: 600;
     min-width: 80px;
     text-align: center;
+    flex-shrink: 0;
 }
 
 /* Tooltip pour le bouton FDM */
@@ -1143,8 +1116,64 @@ main {
     opacity: 1;
 }
 
-/* Responsive pour le modal PDF */
+/* CORRECTIONS RESPONSIVE CRITIQUES */
 @media (max-width: 480px) {
+    main {
+        padding: 0 16px 100px;
+    }
+    
+    header {
+        padding: 16px 20px;
+        border-radius: 0 0 20px 20px;
+    }
+    
+    .quick-actions {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    
+    .team-logo {
+        width: 52px;
+        height: 52px;
+    }
+    
+    .team-name {
+        font-size: 13px;
+    }
+    
+    .vs {
+        font-size: 14px;
+        margin: 0 6px;
+    }
+    
+    .match-card {
+        padding: 16px;
+    }
+    
+    .tabs-container {
+        margin: 12px 0;
+        padding: 3px;
+    }
+    
+    .tab {
+        padding: 10px 12px;
+        font-size: 13px;
+        gap: 4px;
+    }
+    
+    .tab i {
+        font-size: 16px;
+    }
+    
+    .score-container {
+        min-width: 45px;
+        padding: 6px 10px;
+    }
+    
+    .match-score {
+        font-size: 16px;
+    }
+    
     .fdm-modal-content {
         width: 100%;
         height: 100%;
@@ -1163,9 +1192,54 @@ main {
         width: 40px;
         height: 40px;
     }
+    
+    .filters-container {
+        margin: 16px 0;
+    }
+    
+    .filter-chip {
+        padding: 10px 16px;
+        font-size: 13px;
+    }
 }
 
 @media (max-width: 360px) {
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .quick-actions {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    
+    .team-logo {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .team-name {
+        font-size: 12px;
+    }
+    
+    .tab {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+    
+    .tab i {
+        font-size: 14px;
+    }
+    
+    .score-container {
+        min-width: 40px;
+        padding: 5px 8px;
+    }
+    
+    .match-score {
+        font-size: 15px;
+    }
+    
     .fdm-modal-title {
         font-size: 16px;
     }
@@ -1183,5 +1257,48 @@ main {
     .fdm-zoom-info {
         font-size: 12px;
         min-width: 60px;
+    }
+    
+    .match-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .match-level {
+        align-self: flex-start;
+    }
+}
+
+/* Correction pour les très petits écrans */
+@media (max-width: 320px) {
+    main {
+        padding: 0 12px 100px;
+    }
+    
+    .team-logo {
+        width: 44px;
+        height: 44px;
+    }
+    
+    .team-name {
+        font-size: 11px;
+    }
+    
+    .vs {
+        font-size: 12px;
+        margin: 0 4px;
+    }
+    
+    .match-card {
+        padding: 12px;
+    }
+    
+    .nav-item {
+        padding: 6px 12px;
+    }
+    
+    .nav-label {
+        font-size: 11px;
     }
 }
