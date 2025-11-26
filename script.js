@@ -960,18 +960,32 @@ function displayMatches(matches, containerId, title = 'Matchs') {
                 <div class="teams-container">
                     <div class="team">
                         <div class="team-logo">
-                            ${match.home_logo ? `<img src="${match.home_logo}" alt="${match.home_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
+                            ${match.home_logo ? 
+                                `<img src="${match.home_logo}" alt="${match.home_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+                                ''
+                            }
                             <div class="logo-fallback" style="${match.home_logo ? 'display: none;' : 'display: flex;'}">🏠</div>
                         </div>
                         <div class="team-name">${match.home_team}</div>
+                        <!-- Ajout d'un conteneur de score vide pour maintenir l'alignement -->
+                        <div class="score-container" style="visibility: hidden;">
+                            <div class="match-score">-</div>
+                        </div>
                     </div>
                     <div class="vs">VS</div>
                     <div class="team">
                         <div class="team-logo">
-                            ${match.away_logo ? `<img src="${match.away_logo}" alt="${match.away_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : ''}
+                            ${match.away_logo ? 
+                                `<img src="${match.away_logo}" alt="${match.away_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+                                ''
+                            }
                             <div class="logo-fallback" style="${match.away_logo ? 'display: none;' : 'display: flex;'}">✈️</div>
                         </div>
                         <div class="team-name">${match.away_team}</div>
+                        <!-- Ajout d'un conteneur de score vide pour maintenir l'alignement -->
+                        <div class="score-container" style="visibility: hidden;">
+                            <div class="match-score">-</div>
+                        </div>
                     </div>
                 </div>
                 <div class="match-footer">
