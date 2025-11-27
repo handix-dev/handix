@@ -1690,7 +1690,7 @@ async function loadVenueRecentResults() {
         
         const today = new Date();
         const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(today.getDate() - 30); // 30 derniers jours pour plus de résultats
+        thirtyDaysAgo.setDate(today.getDate() - 120); // 30 derniers jours pour plus de résultats
         
         const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
         
@@ -1703,7 +1703,7 @@ async function loadVenueRecentResults() {
             .not('score_away', 'is', null)
             .order('date', { ascending: false })
             .order('time', { ascending: false })
-            .limit(20);
+            .limit(50);
 
         // Filtrer par venue_address
         if (currentVenueDetails.venueAddress && currentVenueDetails.venueAddress !== 'null' && currentVenueDetails.venueAddress !== '') {

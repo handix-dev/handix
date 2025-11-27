@@ -309,7 +309,7 @@ main {
     font-weight: 700;
     font-size: 14px;
     flex: 1;
-    color: var(--text-primary);
+    color: var(--text-secondary);
     min-width: 0;
     overflow: hidden;
     text-overflow: clip; /* ou 'initial' */
