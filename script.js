@@ -935,7 +935,7 @@ function displayMatches(matches, containerId, title = 'Matchs') {
     }
 
     container.innerHTML = `
-        <div style="margin-bottom: 16px; color: var(--text-primary); font-size: 16px; font-weight: 600;">
+        <div style="margin-bottom: 16px; color: var(--text-muted); font-size: 16px; font-weight: 600;">
             ${title} (${matches.length})
         </div>
         ${matches.map(match => {
@@ -1020,7 +1020,7 @@ function displayMatchResults(matches, containerId, title = 'Résultats') {
     }
 
     container.innerHTML = `
-        <div style="margin-bottom: 16px; color: var(--text-primary); font-size: 16px; font-weight: 600;">
+        <div style="margin-bottom: 16px; color: var(--text-muted); font-size: 16px; font-weight: 600;">
             ${title} (${matches.length})
         </div>
         ${matches.map(match => {
@@ -1746,7 +1746,7 @@ function displayVenueMatches(matches, containerId, title = 'Matchs') {
     }
 
     container.innerHTML = `
-        <div style="margin-bottom: 16px; color: var(--text-primary); font-size: 16px; font-weight: 600;">
+        <div style="margin-bottom: 16px; color: var(--text-muted); font-size: 16px; font-weight: 600;">
             ${title} (${matches.length})
         </div>
         ${matches.map(match => {
@@ -1827,7 +1827,7 @@ function displayVenueMatchResults(matches, containerId, title = 'Résultats') {
     }
 
     container.innerHTML = `
-        <div style="margin-bottom: 16px; color: var(--text-primary); font-size: 16px; font-weight: 600;">
+        <div style="margin-bottom: 16px; color: var(--text-muted); font-size: 16px; font-weight: 600;">
             ${title} (${matches.length})
         </div>
         ${matches.map((match, index) => {
@@ -1995,7 +1995,6 @@ function displayVenueDetails(venue, teams, venueName, venueAddress = null) {
             }
             
             html += `
-                <div><strong>Coordonnées:</strong> ${parseFloat(venue.latitude).toFixed(6)}, ${parseFloat(venue.longitude).toFixed(6)}</div>
                 ${distanceHtml}
             `;
             
@@ -2078,8 +2077,7 @@ function requestLocationPermission() {
                     
                     L.marker([userLocation.lat, userLocation.lng], { icon: homeIcon })
                         .addTo(map)
-                        .bindPopup('<div style="font-weight: 600; color: #ef4444;">Votre position</div>')
-                        .openPopup();
+                        .bindPopup('<div style="font-weight: 600; color: #050f44;">Votre position</div>')
                 }
             },
             (error) => {

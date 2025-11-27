@@ -11,17 +11,15 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Header avec fond violet -->
-    <header>
-        <div class="header-content">
-            <div class="logo">HANDIX</div>
-            <div class="user-profile">
-                <i class="ri-user-line"></i>
-            </div>
-        </div>
+    <header>        
         <div class="welcome-section">
-            <div class="welcome-text">Bon retour,</div>
-            <div class="welcome-title">Trouvez vos matchs</div>
+            <div class="welcome-title">HANDIX</div>
+
+            <div class="welcome-text">Tous les matchs.</div>
+            
+            <div class="welcome-text">Tous les clubs.</div>
+            
+            <div class="welcome-text">Tout le hand.</div>
         </div>
     </header>
 
@@ -29,36 +27,30 @@
         <!-- ONGLET ACCUEIL -->
         <section id="home" class="page">
             <div class="search-container">
-                <input type="text" class="search-input" id="home-search" placeholder="Rechercher équipe, ville, gymnase...">
+                <input type="text" class="search-input" id="home-search" placeholder="Rechercher">
                 <button class="search-button" id="home-search-button">
                     <i class="ri-search-line"></i>
                 </button>
             </div>
 
             <div class="quick-actions">
-                <div class="quick-action" data-action="nearby">
-                    <div class="quick-action-icon">
-                        <i class="ri-map-pin-line"></i>
-                    </div>
-                    <div class="quick-action-label">Près de moi</div>
-                </div>
-                <div class="quick-action" data-action="today">
+                <div class="quick-action" style="background-color: #de312a;" data-action="today">
                     <div class="quick-action-icon">
                         <i class="ri-calendar-line"></i>
                     </div>
-                    <div class="quick-action-label">Aujourd'hui</div>
+                    <div class="quick-action-label">Match du jour</div>
                 </div>
-                <div class="quick-action" data-action="favorites">
+                <div class="quick-action" onclick="window.location.href='matchs.html'">
                     <div class="quick-action-icon">
-                        <i class="ri-star-line"></i>
+                        <i class="ri-trophy-line"></i>
                     </div>
-                    <div class="quick-action-label">Favoris</div>
+                    <div class="quick-action-label">Résultats en direct</div>
                 </div>
                 <div class="quick-action" onclick="window.location.href='salles.html'">
                     <div class="quick-action-icon">
-                        <i class="ri-map-line"></i>
+                        <i class="ri-map-pin-line"></i>
                     </div>
-                    <div class="quick-action-label">Salles</div>
+                    <div class="quick-action-label">Trouver un gymnase</div>
                 </div>
             </div>
 
