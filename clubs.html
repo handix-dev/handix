@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handix - Clubs</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Header avec fond violet -->
+    <header>
+        <div class="header-content">
+            <div class="logo">HANDIX</div>
+        </div>
+        <div class="welcome-section">
+            <div class="welcome-text">Découvrez les clubs</div>
+        </div>
+    </header>
+
+    <main>
+        <!-- ONGLET CLUBS -->
+        <section id="clubs" class="page">
+            <div class="search-container">
+                <input type="text" class="search-input" id="club-search" placeholder="Rechercher un club, une ville...">
+                <button class="search-button" id="club-search-button">
+                    <i class="ri-search-line"></i>
+                </button>
+            </div>
+
+            <div class="section-header">
+                <div class="section-title">Clubs de handball</div>
+                <a href="#" class="section-link" id="refresh-clubs">Actualiser</a>
+            </div>
+
+            <div class="data-container" id="clubs-results">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>Chargement des clubs...</div>
+                </div>
+            </div>
+
+            <!-- Vue détaillée d'un club -->
+            <div id="club-detail-view" style="display: none;">
+                <button class="back-button" id="back-to-clubs">
+                    <i class="ri-arrow-left-line"></i> Retour aux clubs
+                </button>
+                <div id="club-detail-container"></div>
+                
+                <!-- Section pour afficher les équipes du club -->
+                <div id="club-teams-section" style="margin-top: 24px;">
+                    <div class="section-header">
+                        <div class="section-title" id="club-teams-title">Équipes du club</div>
+                    </div>
+                    <div class="data-container" id="club-teams-results">
+                        <!-- Les équipes seront chargées ici -->
+                    </div>
+                </div>
+                
+                <!-- Section pour afficher les matchs du club -->
+                <div id="club-matches-section" style="margin-top: 24px;">
+                    <div class="section-header">
+                        <div class="section-title" id="club-matches-title">Matchs à venir</div>
+                    </div>
+                    <!-- Toggle Match à venir / Résultats -->
+                    <div class="tabs-container" style="margin: 16px 0;">
+                        <div class="tab active" data-tab="upcoming" id="club-upcoming-tab">
+                            <i class="ri-calendar-event-line"></i>
+                            Matchs à venir
+                        </div>
+                        <div class="tab" data-tab="results" id="club-results-tab">
+                            <i class="ri-trophy-line"></i>
+                            Résultats
+                        </div>
+                    </div>
+                    <div class="data-container" id="club-matches-results">
+                        <!-- Les matchs seront chargés ici -->
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Navigation bottom -->
+    <nav class="bottom-nav">
+        <div class="nav-item" onclick="window.location.href='salles.html'">
+            <div class="nav-icon"><i class="ri-map-pin-line"></i></div>
+            <div class="nav-label">Salles</div>
+        </div>
+        <div class="nav-item active" onclick="window.location.href='clubs.html'">
+            <div class="nav-icon"><i class="ri-team-line"></i></div>
+            <div class="nav-label">Clubs</div>
+        </div>
+        <div class="nav-item" onclick="window.location.href='home.html'">
+            <div class="nav-icon"><i class="ri-home-5-line"></i></div>
+            <div class="nav-label">Accueil</div>
+        </div>
+        <div class="nav-item" onclick="window.location.href='matchs.html'">
+            <div class="nav-icon"><i class="ri-trophy-line"></i></div>
+            <div class="nav-label">Matchs</div>
+        </div>
+        <div class="nav-item" onclick="window.location.href='profil.html'">
+            <div class="nav-icon"><i class="ri-user-line"></i></div>
+            <div class="nav-label">Profil</div>
+        </div>
+    </nav>
+
+    <script src="script.js"></script>
+</body>
+</html>

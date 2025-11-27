@@ -10,8 +10,9 @@ let userLocation = null;
 let clubsData = [];
 let venuesMarkers = [];
 let currentPage = 'home';
-let currentMatchFilter = 'upcoming'; // Pour garder en mémoire le filtre actuel
-let currentVenueDetails = null; // Stocke les détails de la salle courante
+let currentMatchFilter = 'upcoming';
+let currentVenueDetails = null;
+let currentClubDetails = null;
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', function() {
@@ -58,10 +59,557 @@ async function initApp() {
         case 'matchs':
             await initMatchesPage();
             break;
+        case 'clubs':
+            await initClubsPage();
+            break;
     }
     
     requestLocationPermission();
     checkForNewMatches();
+}
+
+// FONCTIONS SPÉCIFIQUES POUR LA PAGE CLUBS
+async function initClubsPage() {
+    console.log('🚀 Initialisation de la page clubs...');
+    await initClubsEventListeners();
+    // NE PAS charger tous les clubs au démarrage - afficher un message d'accueil
+    showInitialMessage();
+}
+
+function showInitialMessage() {
+    const container = document.getElementById('clubs-results');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="no-results">
+            <div class="no-results-icon">
+                <i class="ri-search-line"></i>
+            </div>
+            <div>Recherchez un club</div>
+            <div style="margin-top: 8px; font-size: 14px; color: var(--text-muted);">
+                Utilisez la barre de recherche pour trouver des clubs de handball
+            </div>
+        </div>
+    `;
+}
+
+function initClubsEventListeners() {
+    console.log('🎯 Initialisation des écouteurs clubs...');
+    
+    // Recherche de clubs
+    const clubSearchBtn = document.getElementById('club-search-button');
+    const clubSearchInput = document.getElementById('club-search');
+    
+    console.log('🔍 Éléments trouvés:', {
+        clubSearchBtn: !!clubSearchBtn,
+        clubSearchInput: !!clubSearchInput
+    });
+
+    if (clubSearchBtn && clubSearchInput) {
+        clubSearchBtn.onclick = () => {
+            const term = clubSearchInput.value.trim();
+            console.log('🖱️ Bouton cliqué - Recherche clubs:', term);
+            if (term) {
+                searchClubs(term);
+            } else {
+                showInitialMessage();
+            }
+        };
+        
+        clubSearchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const term = clubSearchInput.value.trim();
+                console.log('⌨️ Enter pressé - Recherche clubs:', term);
+                if (term) {
+                    searchClubs(term);
+                } else {
+                    showInitialMessage();
+                }
+            }
+        });
+        
+        console.log('✅ Écouteurs clubs attachés avec succès');
+    } else {
+        console.error('❌ Éléments de recherche clubs non trouvés');
+        showNotification('Erreur: éléments de recherche non chargés');
+    }
+
+    // Actualiser les clubs - maintenant relance la recherche actuelle
+    const refreshClubs = document.getElementById('refresh-clubs');
+    if (refreshClubs) {
+        refreshClubs.onclick = () => {
+            console.log('🔄 Actualisation clubs');
+            const currentSearch = document.getElementById('club-search').value.trim();
+            if (currentSearch) {
+                searchClubs(currentSearch);
+            } else {
+                showInitialMessage();
+            }
+        };
+    }
+
+    // Bouton retour
+    const backToClubs = document.getElementById('back-to-clubs');
+    if (backToClubs) {
+        backToClubs.onclick = () => {
+            showClubsList();
+        };
+    }
+
+    // Initialiser les onglets des matchs de club
+    initClubMatchesTabs();
+}
+
+function initClubMatchesTabs() {
+    const upcomingTab = document.getElementById('club-upcoming-tab');
+    const resultsTab = document.getElementById('club-results-tab');
+    
+    if (upcomingTab) {
+        upcomingTab.onclick = () => switchClubMatchesTab('upcoming');
+    }
+    
+    if (resultsTab) {
+        resultsTab.onclick = () => switchClubMatchesTab('results');
+    }
+}
+
+function switchClubMatchesTab(tabType) {
+    const upcomingTab = document.getElementById('club-upcoming-tab');
+    const resultsTab = document.getElementById('club-results-tab');
+    const matchesTitle = document.getElementById('club-matches-title');
+    
+    // Mettre à jour les onglets actifs
+    if (upcomingTab) upcomingTab.classList.remove('active');
+    if (resultsTab) resultsTab.classList.remove('active');
+    
+    if (tabType === 'upcoming') {
+        if (upcomingTab) upcomingTab.classList.add('active');
+        if (matchesTitle) matchesTitle.textContent = 'Matchs à venir';
+        loadClubUpcomingMatches();
+    } else if (tabType === 'results') {
+        if (resultsTab) resultsTab.classList.add('active');
+        if (matchesTitle) matchesTitle.textContent = 'Résultats';
+        loadClubRecentResults();
+    }
+}
+
+// FONCTIONS POUR LA NORMALISATION DES NOMS DE CLUBS
+function normalizeClubName(teamName) {
+    if (!teamName) return '';
+    
+    // Supprimer les parenthèses avec lettres (A), (B), etc.
+    let normalized = teamName.replace(/\s*\([A-Z]\)\s*$/g, '');
+    
+    // Normaliser les abréviations courantes
+    normalized = normalized
+        .replace(/ENT\./g, 'ENTENTE')
+        .replace(/ENT\s/g, 'ENTENTE ')
+        .replace(/AS\./g, 'ASSOCIATION SPORTIVE ')
+        .replace(/AS\s/g, 'ASSOCIATION SPORTIVE ')
+        .replace(/US\./g, 'UNION SPORTIVE ')
+        .replace(/US\s/g, 'UNION SPORTIVE ')
+        .replace(/HB\./g, 'HANDBALL ')
+        .replace(/HB\s/g, 'HANDBALL ')
+        .replace(/HB\./g, 'HANDBALL')
+        .replace(/HB\s/g, 'HANDBALL')
+        .replace(/SH\./g, 'SPORTIF HANDBALL ')
+        .replace(/SH\s/g, 'SPORTIF HANDBALL ');
+    
+    // Supprimer les espaces multiples et trim
+    normalized = normalized.replace(/\s+/g, ' ').trim();
+    
+    return normalized.toUpperCase();
+}
+
+function extractBaseClubName(teamName) {
+    const normalized = normalizeClubName(teamName);
+    
+    // Supprimer les mentions de catégories à la fin
+    const baseName = normalized
+        .replace(/\s+(FÉMININES?|FÉMININ|DAMES?|FEMININES?|FEMININ|WOMEN)$/i, '')
+        .replace(/\s+(MASCULINS?|MASCULIN|HOMMES?|MEN|HOM)$/i, '')
+        .replace(/\s+(U[0-9]{1,2}|JEUNES?|JUNIORS?|SENIORS?|VÉTÉRANS?)$/i, '')
+        .replace(/\s+(NATIONALE|NATIONALE\s+[0-9]|REGIONAL|REGIONALE|DEPARTEMENTAL|DEPARTEMENTALE|D[0-9]|R[0-9])$/i, '')
+        .trim();
+    
+    return baseName;
+}
+
+function groupSimilarClubs(matches) {
+    const clubGroups = new Map();
+    
+    matches.forEach(match => {
+        // Ignorer les matchs où le level contient " vs "
+        if (match.level && match.level.includes(' vs ')) {
+            return; // Skip ce match
+        }
+        
+        // Traiter l'équipe domicile
+        if (match.home_team) {
+            const baseName = extractBaseClubName(match.home_team);
+            const normalized = normalizeClubName(match.home_team);
+            
+            if (!clubGroups.has(baseName)) {
+                clubGroups.set(baseName, {
+                    baseName: baseName,
+                    teamNames: new Set(),
+                    normalizedNames: new Set(),
+                    matchCount: 0,
+                    levels: new Set()
+                });
+            }
+            
+            const group = clubGroups.get(baseName);
+            group.teamNames.add(match.home_team);
+            group.normalizedNames.add(normalized);
+            group.matchCount++;
+            if (match.level) group.levels.add(match.level);
+        }
+        
+        // Traiter l'équipe extérieure
+        if (match.away_team) {
+            const baseName = extractBaseClubName(match.away_team);
+            const normalized = normalizeClubName(match.away_team);
+            
+            if (!clubGroups.has(baseName)) {
+                clubGroups.set(baseName, {
+                    baseName: baseName,
+                    teamNames: new Set(),
+                    normalizedNames: new Set(),
+                    matchCount: 0,
+                    levels: new Set()
+                });
+            }
+            
+            const group = clubGroups.get(baseName);
+            group.teamNames.add(match.away_team);
+            group.normalizedNames.add(normalized);
+            group.matchCount++;
+            if (match.level) group.levels.add(match.level);
+        }
+    });
+    
+    // Convertir en tableau et trier par nombre de matchs
+    return Array.from(clubGroups.values())
+        .map(group => ({
+            ...group,
+            teamNames: Array.from(group.teamNames),
+            normalizedNames: Array.from(group.normalizedNames),
+            levels: Array.from(group.levels)
+        }))
+        .sort((a, b) => b.matchCount - a.matchCount);
+}
+
+// FONCTIONS PRINCIPALES POUR LES CLUBS - CHARGEMENT UNIQUEMENT LORS DE LA RECHERCHE
+async function searchClubs(searchTerm) {
+    try {
+        console.log('🔍 Recherche clubs:', searchTerm);
+        showLoading('clubs-results', `Recherche de clubs pour "${searchTerm}"...`);
+        
+        // Charger les données depuis Supabase UNIQUEMENT lors de la recherche
+        const { data, error } = await supabase
+            .from('matches')
+            .select('home_team, away_team, level')
+            .or(`home_team.ilike.%${searchTerm}%,away_team.ilike.%${searchTerm}%`)
+            .limit(500); // Limiter pour les performances
+
+        if (error) throw error;
+
+        console.log(`📊 ${data?.length || 0} matchs trouvés pour la recherche`);
+
+        if (!data || data.length === 0) {
+            showNoResults(searchTerm);
+            return;
+        }
+
+        // Grouper les clubs similaires UNIQUEMENT pour les résultats de recherche
+        const groupedClubs = groupSimilarClubs(data);
+        
+        console.log(`🏟️ ${groupedClubs.length} clubs groupés trouvés`);
+        displayClubs(groupedClubs, `Résultats pour "${searchTerm}"`);
+        
+    } catch (error) {
+        console.error('❌ Erreur recherche clubs:', error);
+        showError('clubs-results', 'Erreur lors de la recherche de clubs');
+    }
+}
+
+function showNoResults(searchTerm) {
+    const container = document.getElementById('clubs-results');
+    if (!container) return;
+    
+    container.innerHTML = `
+        <div class="no-results">
+            <div class="no-results-icon">
+                <i class="ri-team-line"></i>
+            </div>
+            <div>Aucun club trouvé</div>
+            <div style="margin-top: 8px; font-size: 14px; color: var(--text-muted);">
+                Aucun résultat pour "${searchTerm}"
+            </div>
+        </div>
+    `;
+}
+
+function displayClubs(clubs, title = 'Clubs') {
+    const container = document.getElementById('clubs-results');
+    if (!container) return;
+    
+    if (!clubs || clubs.length === 0) {
+        container.innerHTML = `
+            <div class="no-results">
+                <div class="no-results-icon">
+                    <i class="ri-team-line"></i>
+                </div>
+                <div>Aucun club trouvé</div>
+                <div style="margin-top: 8px; font-size: 14px; color: var(--text-muted);">
+                    ${title.includes('Recherche') ? 'Essayez avec d\'autres termes de recherche' : 'Aucun club disponible'}
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = `
+        <div style="margin-bottom: 16px; color: var(--text-primary); font-size: 16px; font-weight: 600;">
+            ${title} (${clubs.length})
+        </div>
+        ${clubs.map(club => {
+            const isFav = isItemFavorite('club', club.baseName);
+            const teamCount = club.teamNames.length;
+            const levelInfo = club.levels.slice(0, 3).join(', ');
+            
+            return `
+            <div class="card club-card" data-club-name="${club.baseName}">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="ri-team-line"></i>
+                    </div>
+                    <div class="card-title">${club.baseName}</div>
+                    <button class="favorite-btn ${isFav ? 'active' : ''}" 
+                            onclick="event.stopPropagation(); toggleFavorite('club', '${club.baseName}', '${club.baseName}', 'club')">
+                        <i class="ri-star-${isFav ? 'fill' : 'line'}"></i>
+                    </button>
+                </div>
+                <div class="card-details">
+                    <div><strong>Équipes:</strong> ${teamCount} équipe${teamCount > 1 ? 's' : ''}</div>
+                    ${levelInfo ? `<div><strong>Niveaux:</strong> ${levelInfo}</div>` : ''}
+                    ${club.matchCount ? `<div><strong>Matchs référencés:</strong> ${club.matchCount}</div>` : ''}
+                    ${teamCount > 1 ? `
+                    <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
+                        <i class="ri-information-line"></i> Regroupe: ${club.teamNames.slice(0, 3).join(', ')}${teamCount > 3 ? '...' : ''}
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+            `;
+        }).join('')}
+    `;
+
+    // Ajouter les écouteurs d'événements pour les cartes de club
+    document.querySelectorAll('.club-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const clubName = this.getAttribute('data-club-name');
+            loadClubDetails(clubName);
+        });
+    });
+}
+
+async function loadClubDetails(clubName) {
+    try {
+        showLoading('club-detail-container', `Chargement des détails pour ${clubName}...`);
+        
+        const clubsResults = document.getElementById('clubs-results');
+        const clubDetailView = document.getElementById('club-detail-view');
+        
+        if (clubsResults) clubsResults.style.display = 'none';
+        if (clubDetailView) clubDetailView.style.display = 'block';
+
+        // Stocker les détails du club courant
+        currentClubDetails = {
+            clubName: clubName
+        };
+
+        // Pour afficher les détails d'un club, on doit recharger les données spécifiques
+        // car on n'a pas chargé tous les clubs au démarrage
+        const { data, error } = await supabase
+            .from('matches')
+            .select('home_team, away_team, level')
+            .or(`home_team.ilike.%${clubName}%,away_team.ilike.%${clubName}%`)
+            .limit(200);
+
+        if (error) throw error;
+
+        // Regrouper les données pour ce club spécifique
+        const groupedClubs = groupSimilarClubs(data || []);
+        const club = groupedClubs.find(c => c.baseName === clubName);
+        
+        if (!club) {
+            showError('club-detail-container', 'Club non trouvé');
+            return;
+        }
+
+        displayClubDetails(club);
+        
+        // Charger les équipes et matchs
+        await loadClubTeams(club);
+        await loadClubUpcomingMatches(club);
+        
+    } catch (error) {
+        console.error('❌ Erreur loadClubDetails:', error);
+        showError('club-detail-container', 'Erreur lors du chargement des détails du club');
+    }
+}
+
+function displayClubDetails(club) {
+    const container = document.getElementById('club-detail-container');
+    if (!container) return;
+    
+    const isFav = isItemFavorite('club', club.baseName);
+
+    const html = `
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">
+                    <i class="ri-team-line"></i>
+                </div>
+                <div class="card-title">${club.baseName}</div>
+                <button class="favorite-btn ${isFav ? 'active' : ''}" 
+                        onclick="toggleFavorite('club', '${club.baseName}', '${club.baseName}', 'club')">
+                    <i class="ri-star-${isFav ? 'fill' : 'line'}"></i>
+                </button>
+            </div>
+            <div class="card-details">
+                <div><strong>Équipes:</strong> ${club.teamNames.length} équipe${club.teamNames.length > 1 ? 's' : ''}</div>
+                ${club.levels.length > 0 ? `<div><strong>Niveaux:</strong> ${club.levels.join(', ')}</div>` : ''}
+                <div><strong>Matchs référencés:</strong> ${club.matchCount}</div>
+                <div style="margin-top: 12px;">
+                    <strong>Équipes du club:</strong>
+                    <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
+                        ${club.teamNames.map(team => `
+                            <div class="filter-chip" onclick="searchTeamMatches('${team}')">
+                                ${team}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+async function loadClubTeams(club) {
+    try {
+        if (!currentClubDetails) return;
+        
+        const container = document.getElementById('club-teams-results');
+        if (!container) return;
+        
+        const teamsHtml = club.teamNames.map(teamName => {
+            return `
+            <div class="card" style="margin-bottom: 12px;">
+                <div class="card-header">
+                    <div class="card-icon">
+                        <i class="ri-user-line"></i>
+                    </div>
+                    <div class="card-title">${teamName}</div>
+                </div>
+                <div class="card-details">
+                    <button class="search-button" onclick="searchTeamMatches('${teamName}')" style="margin-top: 8px;">
+                        <i class="ri-search-line"></i> Voir les matchs
+                    </button>
+                </div>
+            </div>
+            `;
+        }).join('');
+        
+        container.innerHTML = teamsHtml;
+        
+    } catch (error) {
+        console.error('❌ Erreur loadClubTeams:', error);
+        showError('club-teams-results', 'Erreur lors du chargement des équipes');
+    }
+}
+
+async function loadClubUpcomingMatches(club) {
+    try {
+        if (!currentClubDetails) return;
+        
+        showLoading('club-matches-results', 'Chargement des matchs à venir...');
+        
+        // Utiliser les noms d'équipes pour rechercher les matchs
+        const teamNames = club.teamNames;
+        
+        const { data: matchesData, error } = await supabase
+            .from('matches')
+            .select('*')
+            .or(teamNames.map(team => `home_team.eq.${team},away_team.eq.${team}`).join(','))
+            .order('date', { ascending: true })
+            .order('time', { ascending: true })
+            .limit(20);
+
+        if (error) throw error;
+
+        console.log(`🎯 ${matchesData?.length || 0} matchs à venir trouvés pour le club`);
+        displayClubMatches(matchesData || [], 'club-matches-results', 'Matchs à venir');
+        
+    } catch (error) {
+        console.error('❌ Erreur loadClubUpcomingMatches:', error);
+        showError('club-matches-results', 'Erreur lors du chargement des matchs à venir');
+    }
+}
+
+async function loadClubRecentResults(club) {
+    try {
+        if (!currentClubDetails) return;
+        
+        showLoading('club-matches-results', 'Chargement des résultats...');
+        
+        // Utiliser les noms d'équipes pour rechercher les matchs
+        const teamNames = club.teamNames;
+        
+        const { data: matchesData, error } = await supabase
+            .from('matches')
+            .select('*')
+            .or(teamNames.map(team => `home_team.eq.${team},away_team.eq.${team}`).join(','))
+            .not('score_home', 'is', null)
+            .not('score_away', 'is', null)
+            .order('date', { ascending: false })
+            .order('time', { ascending: false })
+            .limit(20);
+
+        if (error) throw error;
+
+        console.log(`🎯 ${matchesData?.length || 0} résultats trouvés pour le club`);
+        displayClubMatchResults(matchesData || [], 'club-matches-results', 'Résultats');
+        
+    } catch (error) {
+        console.error('❌ Erreur loadClubRecentResults:', error);
+        showError('club-matches-results', 'Erreur lors du chargement des résultats');
+    }
+}
+
+function displayClubMatches(matches, containerId, title = 'Matchs') {
+    // Réutiliser la fonction displayMatches existante
+    displayMatches(matches, containerId, title);
+}
+
+function displayClubMatchResults(matches, containerId, title = 'Résultats') {
+    // Réutiliser la fonction displayMatchResults existante
+    displayMatchResults(matches, containerId, title);
+}
+
+function showClubsList() {
+    const clubsResults = document.getElementById('clubs-results');
+    const clubDetailView = document.getElementById('club-detail-view');
+    
+    if (clubsResults) clubsResults.style.display = 'block';
+    if (clubDetailView) clubDetailView.style.display = 'none';
+    
+    // Réinitialiser les détails de club courants
+    currentClubDetails = null;
 }
 
 // FONCTIONS SPÉCIFIQUES POUR LA PAGE MATCHS
