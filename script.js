@@ -371,7 +371,7 @@ function displayClubs(clubs, title = 'Clubs') {
     }
 
     container.innerHTML = `
-        <div style="margin-bottom: 16px; color: var(--text-primary); font-size: 16px; font-weight: 600;">
+        <div style="margin-bottom: 16px; color: var(--text-muted); font-size: 16px; font-weight: 600;">
             ${title} (${clubs.length})
         </div>
         ${clubs.map(club => {
@@ -995,7 +995,7 @@ async function loadMatchesNearby() {
         showLoading('matches-results', 'Recherche des matchs près de vous...');
         
         if (!userLocation) {
-            showError('matches-results', 'Activez la géolocalisation pour voir les matchs près de vous');
+            showError('matches-results', 'Autorisez la géolocalisation pour découvrir les matchs à proximité.');
             return;
         }
 
@@ -1211,7 +1211,7 @@ async function searchMatchesNearbyWithTerm(searchTerm) {
         showLoading('matches-results', `Recherche des matchs près de vous pour "${searchTerm}"...`);
         
         if (!userLocation) {
-            showError('matches-results', 'Activez la géolocalisation pour voir les matchs près de vous');
+            showError('matches-results', 'Autorisez la géolocalisation pour découvrir les matchs à proximité.');
             return;
         }
 
@@ -1792,7 +1792,7 @@ async function loadVenuesNearby() {
         showLoading('venues-results', 'Recherche des salles près de vous...');
         
         if (!userLocation) {
-            showError('venues-results', 'Activez la géolocalisation pour voir les salles près de vous');
+            showError('venues-results', 'Autorisez la géolocalisation pour découvrir les salles à proximité.');
             return;
         }
 
@@ -2009,7 +2009,7 @@ function displayVenues(venues, title = 'Salles') {
     });
 
     container.innerHTML = `
-        <div style="margin-bottom: 16px; color: var(--text-primary); font-size: 16px; font-weight: 600;">
+        <div style="margin-bottom: 16px; color: var(--text-muted); font-size: 16px; font-weight: 600;">
             ${title} (${uniqueVenues.length})
         </div>
         ${uniqueVenues.map(venue => {
@@ -2631,7 +2631,7 @@ function requestLocationPermission() {
             (error) => {
                 console.log('📍 Géolocalisation refusée ou erreur:', error);
                 if (currentPage === 'salles' || currentPage === 'matchs') {
-                    showNotification('Activez la géolocalisation pour voir les contenus près de vous');
+                    showNotification('Autorisez la géolocalisation pour découvrir les salles à proximité.');
                 }
             }
         );
