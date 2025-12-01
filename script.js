@@ -617,11 +617,6 @@ async function displayClubs(clubs, title = 'Clubs') {
             
             // Badges pour les variantes
             const badges = [];
-            if (hasVariants && club.similarClubs) {
-                badges.push(`<div class="card-badge" title="${club.similarClubs.length} variantes regroupées">
-                    <i class="ri-group-line"></i> ${club.similarClubs.length + 1}
-                </div>`);
-            }
             
             // Formater l'affichage du gymnase
             let venueHtml = '';
