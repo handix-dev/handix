@@ -72,7 +72,6 @@ async function initApp() {
 async function initClubsPage() {
     console.log('🚀 Initialisation de la page clubs...');
     await initClubsEventListeners();
-    // NE PAS charger tous les clubs au démarrage - afficher un message d'accueil
     showInitialMessage();
 }
 
@@ -96,7 +95,6 @@ function showInitialMessage() {
 function initClubsEventListeners() {
     console.log('🎯 Initialisation des écouteurs clubs...');
     
-    // Recherche de clubs
     const clubSearchBtn = document.getElementById('club-search-button');
     const clubSearchInput = document.getElementById('club-search');
     
@@ -134,7 +132,6 @@ function initClubsEventListeners() {
         showNotification('Erreur: éléments de recherche non chargés');
     }
 
-    // Actualiser les clubs - maintenant relance la recherche actuelle
     const refreshClubs = document.getElementById('refresh-clubs');
     if (refreshClubs) {
         refreshClubs.onclick = () => {
@@ -148,7 +145,6 @@ function initClubsEventListeners() {
         };
     }
 
-    // Bouton retour
     const backToClubs = document.getElementById('back-to-clubs');
     if (backToClubs) {
         backToClubs.onclick = () => {
@@ -156,7 +152,6 @@ function initClubsEventListeners() {
         };
     }
 
-    // Initialiser les onglets des matchs de club
     initClubMatchesTabs();
 }
 
@@ -178,7 +173,6 @@ function switchClubMatchesTab(tabType) {
     const resultsTab = document.getElementById('club-results-tab');
     const matchesTitle = document.getElementById('club-matches-title');
     
-    // Mettre à jour les onglets actifs
     if (upcomingTab) upcomingTab.classList.remove('active');
     if (resultsTab) resultsTab.classList.remove('active');
     
@@ -193,140 +187,351 @@ function switchClubMatchesTab(tabType) {
     }
 }
 
-// FONCTIONS POUR LA NORMALISATION DES NOMS DE CLUBS
+// FONCTIONS POUR LA NORMALISATION ET REGROUPEMENT DES CLUBS - CORRIGÉES
 function normalizeClubName(teamName) {
     if (!teamName) return '';
     
-    // Supprimer les parenthèses avec lettres (A), (B), etc.
-    let normalized = teamName.replace(/\s*\([A-Z]\)\s*$/g, '');
+    let normalized = teamName.toUpperCase().replace(/\s+/g, ' ').trim();
+    normalized = normalized.replace(/\s*\([^)]*\)\s*$/, '');
     
-    // Normaliser les abréviations courantes
-    normalized = normalized
-        .replace(/ENT\./g, 'ENTENTE')
-        .replace(/ENT\s/g, 'ENTENTE ')
-        .replace(/AS\./g, 'ASSOCIATION SPORTIVE ')
-        .replace(/AS\s/g, 'ASSOCIATION SPORTIVE ')
-        .replace(/US\./g, 'UNION SPORTIVE ')
-        .replace(/US\s/g, 'UNION SPORTIVE ')
-        .replace(/HB\./g, 'HANDBALL ')
-        .replace(/HB\s/g, 'HANDBALL ')
-        .replace(/HB\./g, 'HANDBALL')
-        .replace(/HB\s/g, 'HANDBALL')
-        .replace(/SH\./g, 'SPORTIF HANDBALL ')
-        .replace(/SH\s/g, 'SPORTIF HANDBALL ');
+    const abbreviations = {
+        'ENT\\. ': 'ENTENTE ', // Avec espace pour éviter les substitutions partielles
+        'ENT\\.': 'ENTENTE',
+        'AS\\.': 'ASSOCIATION SPORTIVE',
+        'US\\.': 'UNION SPORTIVE',
+        'HB\\.': 'HANDBALL',
+        'SH\\.': 'SPORTIF HANDBALL',
+        'CA\\.': 'CLUB ATHLETIQUE',
+        'HBC': 'HANDBALL CLUB',
+        'SC\\.': 'SPORTING CLUB',
+        'RC\\.': 'RACING CLUB',
+        'OM\\.': 'OLYMPIQUE MARSEILLE',
+        'OL\\.': 'OLYMPIQUE LYONNAIS'
+    };
     
-    // Supprimer les espaces multiples et trim
+    // Remplacer d'abord les formes avec ponctuation
+    Object.keys(abbreviations).forEach(abbr => {
+        const regex = new RegExp(abbr, 'g');
+        normalized = normalized.replace(regex, abbreviations[abbr]);
+    });
+    
+    // Gérer "ENT" seul (mot entier) mais PAS dans des mots comme "PALENTE"
+    normalized = normalized.replace(/\bENT\b/g, 'ENTENTE');
+    
+    // Gérer les autres abréviations sans point
+    normalized = normalized.replace(/\bAS\b/g, 'ASSOCIATION SPORTIVE');
+    normalized = normalized.replace(/\bUS\b/g, 'UNION SPORTIVE');
+    normalized = normalized.replace(/\bHB\b/g, 'HANDBALL');
+    normalized = normalized.replace(/\bSH\b/g, 'SPORTIF HANDBALL');
+    
+    // Nettoyer
+    normalized = normalized.replace(/[-']/g, ' ');
+    normalized = normalized.replace(/\b(LES?|LA|LE|DE|DES?|DU|ET|A|AU|AUX|EN)\b/g, '');
     normalized = normalized.replace(/\s+/g, ' ').trim();
     
-    return normalized.toUpperCase();
+    return normalized;
 }
 
 function extractBaseClubName(teamName) {
-    const normalized = normalizeClubName(teamName);
+    const withoutParentheses = teamName.replace(/\s*\([^)]*\)\s*$/, '');
+    const normalized = normalizeClubName(withoutParentheses);
     
-    // Supprimer les mentions de catégories à la fin
     const baseName = normalized
         .replace(/\s+(FÉMININES?|FÉMININ|DAMES?|FEMININES?|FEMININ|WOMEN)$/i, '')
         .replace(/\s+(MASCULINS?|MASCULIN|HOMMES?|MEN|HOM)$/i, '')
         .replace(/\s+(U[0-9]{1,2}|JEUNES?|JUNIORS?|SENIORS?|VÉTÉRANS?)$/i, '')
-        .replace(/\s+(NATIONALE|NATIONALE\s+[0-9]|REGIONAL|REGIONALE|DEPARTEMENTAL|DEPARTEMENTALE|D[0-9]|R[0-9])$/i, '')
+        .replace(/\s+(NATIONALE|NAT\.?|REGIONAL|REG\.?|DEPARTEMENTAL|DEP\.?|D[0-9]|R[0-9]|PROMO|EXCEL|ELITE|PRO|PROFESSIONNEL)$/i, '')
+        .replace(/\s+(I|II|III|IV|V|VI|VII|VIII|IX|X|1ER|1ERE|2EME|3EME|4EME)$/i, '')
         .trim();
     
-    return baseName;
+    const words = baseName.split(' ').filter(word => word.length > 2);
+    const rootName = words.slice(0, Math.min(3, words.length)).join(' ');
+    
+    return rootName || baseName;
 }
 
-function groupSimilarClubs(matches) {
-    const clubGroups = new Map();
+function extractParenthesesInfo(teamName) {
+    const match = teamName.match(/\(([^)]+)\)$/);
+    return match ? match[1].trim() : null;
+}
+
+function calculateStringSimilarity(str1, str2) {
+    if (!str1 || !str2) return 0;
     
-    matches.forEach(match => {
-        // Ignorer les matchs où le level contient " vs "
-        if (match.level && match.level.includes(' vs ')) {
-            return; // Skip ce match
-        }
-        
-        // Traiter l'équipe domicile
-        if (match.home_team) {
-            const baseName = extractBaseClubName(match.home_team);
-            const normalized = normalizeClubName(match.home_team);
-            
-            if (!clubGroups.has(baseName)) {
-                clubGroups.set(baseName, {
-                    baseName: baseName,
-                    teamNames: new Set(),
-                    normalizedNames: new Set(),
-                    matchCount: 0,
-                    levels: new Set()
-                });
+    const s1 = str1.toLowerCase();
+    const s2 = str2.toLowerCase();
+    
+    if (s1 === s2) return 100;
+    if (s1.includes(s2) || s2.includes(s1)) return 90;
+    
+    function levenshteinDistance(a, b) {
+        const matrix = [];
+        for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+        for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+        for (let i = 1; i <= b.length; i++) {
+            for (let j = 1; j <= a.length; j++) {
+                if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                    matrix[i][j] = matrix[i - 1][j - 1];
+                } else {
+                    matrix[i][j] = Math.min(
+                        matrix[i - 1][j - 1] + 1,
+                        matrix[i][j - 1] + 1,
+                        matrix[i - 1][j] + 1
+                    );
+                }
             }
-            
-            const group = clubGroups.get(baseName);
-            group.teamNames.add(match.home_team);
-            group.normalizedNames.add(normalized);
-            group.matchCount++;
-            if (match.level) group.levels.add(match.level);
         }
+        return matrix[b.length][a.length];
+    }
+    
+    function jaccardSimilarity(a, b) {
+        const setA = new Set(a.split(' ').filter(w => w.length > 2));
+        const setB = new Set(b.split(' ').filter(w => w.length > 2));
+        const intersection = new Set([...setA].filter(x => setB.has(x)));
+        const union = new Set([...setA, ...setB]);
+        return union.size === 0 ? 0 : (intersection.size / union.size) * 100;
+    }
+    
+    const levenshteinDist = levenshteinDistance(s1, s2);
+    const maxLength = Math.max(s1.length, s2.length);
+    const levenshteinSimilarity = Math.max(0, (1 - levenshteinDist / maxLength) * 100);
+    const jaccardSim = jaccardSimilarity(s1, s2);
+    
+    return Math.round((levenshteinSimilarity * 0.4 + jaccardSim * 0.6));
+}
+
+function findSimilarClubs(baseName, allClubs, threshold = 70) {
+    const similarClubs = [];
+    
+    // Normaliser pour la comparaison
+    const normalizedBase = baseName.toUpperCase().replace(/\bENT\b/g, 'ENTENTE');
+    
+    allClubs.forEach(club => {
+        if (club.baseName === baseName) return;
         
-        // Traiter l'équipe extérieure
-        if (match.away_team) {
-            const baseName = extractBaseClubName(match.away_team);
-            const normalized = normalizeClubName(match.away_team);
-            
-            if (!clubGroups.has(baseName)) {
-                clubGroups.set(baseName, {
-                    baseName: baseName,
-                    teamNames: new Set(),
-                    normalizedNames: new Set(),
-                    matchCount: 0,
-                    levels: new Set()
-                });
-            }
-            
-            const group = clubGroups.get(baseName);
-            group.teamNames.add(match.away_team);
-            group.normalizedNames.add(normalized);
-            group.matchCount++;
-            if (match.level) group.levels.add(match.level);
+        const normalizedClub = club.baseName.toUpperCase().replace(/\bENT\b/g, 'ENTENTE');
+        
+        const similarity = calculateStringSimilarity(normalizedBase, normalizedClub);
+        const abbreviatedBase = normalizedBase
+            .replace(/HANDBALL/g, 'HB')
+            .replace(/ENTENTE/g, 'ENT')
+            .replace(/ASSOCIATION SPORTIVE/g, 'AS')
+            .replace(/UNION SPORTIVE/g, 'US');
+        
+        const abbreviatedClub = normalizedClub
+            .replace(/HANDBALL/g, 'HB')
+            .replace(/ENTENTE/g, 'ENT')
+            .replace(/ASSOCIATION SPORTIVE/g, 'AS')
+            .replace(/UNION SPORTIVE/g, 'US');
+        
+        const abbreviatedSimilarity = calculateStringSimilarity(abbreviatedBase, abbreviatedClub);
+        const maxSimilarity = Math.max(similarity, abbreviatedSimilarity);
+        
+        if (maxSimilarity >= threshold) {
+            similarClubs.push({
+                club: club,
+                similarity: maxSimilarity
+            });
         }
     });
     
-    // Convertir en tableau et trier par nombre de matchs
-    return Array.from(clubGroups.values())
-        .map(group => ({
-            ...group,
-            teamNames: Array.from(group.teamNames),
-            normalizedNames: Array.from(group.normalizedNames),
-            levels: Array.from(group.levels)
-        }))
-        .sort((a, b) => b.matchCount - a.matchCount);
+    return similarClubs.sort((a, b) => b.similarity - a.similarity);
 }
 
-// FONCTIONS PRINCIPALES POUR LES CLUBS - CHARGEMENT UNIQUEMENT LORS DE LA RECHERCHE
+function groupSimilarClubs(matches) {
+    const clubsMap = new Map();
+    const groupedClubs = [];
+    
+    matches.forEach(match => {
+        if (match.level && match.level.includes(' vs ')) return;
+        
+        if (match.home_team) {
+            const baseName = extractBaseClubName(match.home_team);
+            const normalized = normalizeClubName(match.home_team);
+            const parenthesesInfo = extractParenthesesInfo(match.home_team);
+            
+            if (!clubsMap.has(baseName)) {
+                clubsMap.set(baseName, {
+                    baseName: baseName,
+                    originalNames: new Set(),
+                    teamNames: new Set(),
+                    normalizedNames: new Set(),
+                    matchCount: 0,
+                    levels: new Set(),
+                    parenthesesVariants: new Set()
+                });
+            }
+            
+            const club = clubsMap.get(baseName);
+            club.originalNames.add(match.home_team);
+            club.teamNames.add(match.home_team);
+            club.normalizedNames.add(normalized);
+            club.matchCount++;
+            if (match.level) club.levels.add(match.level);
+            if (parenthesesInfo) club.parenthesesVariants.add(parenthesesInfo);
+        }
+        
+        if (match.away_team) {
+            const baseName = extractBaseClubName(match.away_team);
+            const normalized = normalizeClubName(match.away_team);
+            const parenthesesInfo = extractParenthesesInfo(match.away_team);
+            
+            if (!clubsMap.has(baseName)) {
+                clubsMap.set(baseName, {
+                    baseName: baseName,
+                    originalNames: new Set(),
+                    teamNames: new Set(),
+                    normalizedNames: new Set(),
+                    matchCount: 0,
+                    levels: new Set(),
+                    parenthesesVariants: new Set()
+                });
+            }
+            
+            const club = clubsMap.get(baseName);
+            club.originalNames.add(match.away_team);
+            club.teamNames.add(match.away_team);
+            club.normalizedNames.add(normalized);
+            club.matchCount++;
+            if (match.level) club.levels.add(match.level);
+            if (parenthesesInfo) club.parenthesesVariants.add(parenthesesInfo);
+        }
+    });
+    
+    const clubsArray = Array.from(clubsMap.values());
+    const processedClubs = new Set();
+    
+    clubsArray.forEach(club => {
+        if (processedClubs.has(club.baseName)) return;
+        
+        const similarClubs = findSimilarClubs(club.baseName, clubsArray, 70);
+        const group = {
+            baseName: club.baseName,
+            originalNames: new Set([...club.originalNames]),
+            teamNames: new Set([...club.teamNames]),
+            normalizedNames: new Set([...club.normalizedNames]),
+            matchCount: club.matchCount,
+            levels: new Set([...club.levels]),
+            parenthesesVariants: new Set([...club.parenthesesVariants]),
+            similarClubs: [],
+            representativeName: club.baseName
+        };
+        
+        processedClubs.add(club.baseName);
+        
+        similarClubs.forEach(similar => {
+            if (!processedClubs.has(similar.club.baseName)) {
+                similar.club.originalNames.forEach(name => group.originalNames.add(name));
+                similar.club.teamNames.forEach(name => group.teamNames.add(name));
+                similar.club.normalizedNames.forEach(name => group.normalizedNames.add(name));
+                similar.club.levels.forEach(level => group.levels.add(level));
+                similar.club.parenthesesVariants.forEach(variant => group.parenthesesVariants.add(variant));
+                group.matchCount += similar.club.matchCount;
+                group.similarClubs.push(similar.club.baseName);
+                processedClubs.add(similar.club.baseName);
+            }
+        });
+        
+        group.representativeName = chooseRepresentativeName(group);
+        
+        groupedClubs.push({
+            ...group,
+            originalNames: Array.from(group.originalNames),
+            teamNames: Array.from(group.teamNames),
+            normalizedNames: Array.from(group.normalizedNames),
+            levels: Array.from(group.levels),
+            parenthesesVariants: Array.from(group.parenthesesVariants),
+            similarClubs: group.similarClubs
+        });
+    });
+    
+    return groupedClubs.sort((a, b) => b.matchCount - a.matchCount);
+}
+
+function chooseRepresentativeName(clubGroup) {
+    const names = Array.from(clubGroup.teamNames);
+    const sortedByNameLength = names.sort((a, b) => b.length - a.length);
+    
+    const withHandball = sortedByNameLength.filter(name => 
+        name.toUpperCase().includes('HANDBALL')
+    );
+    if (withHandball.length > 0) return withHandball[0];
+    
+    const withEntente = sortedByNameLength.filter(name => 
+        name.toUpperCase().includes('ENTENTE')
+    );
+    if (withEntente.length > 0) return withEntente[0];
+    
+    const withoutParentheses = sortedByNameLength.filter(name => 
+        !name.includes('(')
+    );
+    if (withoutParentheses.length > 0) return withoutParentheses[0];
+    
+    return sortedByNameLength[0];
+}
+
+// FONCTIONS PRINCIPALES POUR LES CLUBS
 async function searchClubs(searchTerm) {
     try {
         console.log('🔍 Recherche clubs:', searchTerm);
         showLoading('clubs-results', `Recherche de clubs pour "${searchTerm}"...`);
         
-        // Charger les données depuis Supabase UNIQUEMENT lors de la recherche
-        const { data, error } = await supabase
+        let { data, error } = await supabase
             .from('matches')
             .select('home_team, away_team, level')
             .or(`home_team.ilike.%${searchTerm}%,away_team.ilike.%${searchTerm}%`)
-            .limit(500); // Limiter pour les performances
+            .limit(500);
 
         if (error) throw error;
 
         console.log(`📊 ${data?.length || 0} matchs trouvés pour la recherche`);
 
         if (!data || data.length === 0) {
-            showNoResults(searchTerm);
-            return;
+            const words = searchTerm.split(' ').filter(w => w.length > 2);
+            if (words.length > 1) {
+                for (const word of words) {
+                    const { data: wordData, error: wordError } = await supabase
+                        .from('matches')
+                        .select('home_team, away_team, level')
+                        .or(`home_team.ilike.%${word}%,away_team.ilike.%${word}%`)
+                        .limit(100);
+                    
+                    if (!wordError && wordData && wordData.length > 0) {
+                        data = wordData;
+                        break;
+                    }
+                }
+            }
+            
+            if (!data || data.length === 0) {
+                showNoResults(searchTerm);
+                return;
+            }
         }
 
-        // Grouper les clubs similaires UNIQUEMENT pour les résultats de recherche
         const groupedClubs = groupSimilarClubs(data);
-        
         console.log(`🏟️ ${groupedClubs.length} clubs groupés trouvés`);
-        displayClubs(groupedClubs, `Résultats pour "${searchTerm}"`);
+        
+        const relevantClubs = groupedClubs.filter(club => {
+            const searchLower = searchTerm.toLowerCase();
+            const clubLower = club.representativeName.toLowerCase();
+            const allNames = [...club.teamNames, ...club.originalNames, club.representativeName];
+            
+            if (clubLower.includes(searchLower) || searchLower.includes(clubLower)) return true;
+            
+            for (const name of allNames) {
+                if (name.toLowerCase().includes(searchLower)) return true;
+            }
+            
+            const searchWords = searchLower.split(' ').filter(w => w.length > 2);
+            for (const word of searchWords) {
+                if (clubLower.includes(word)) return true;
+            }
+            
+            return false;
+        });
+        
+        displayClubs(relevantClubs, `Résultats pour "${searchTerm}"`);
         
     } catch (error) {
         console.error('❌ Erreur recherche clubs:', error);
@@ -351,10 +556,11 @@ function showNoResults(searchTerm) {
     `;
 }
 
-function displayClubs(clubs, title = 'Clubs') {
+async function displayClubs(clubs, title = 'Clubs') {
     const container = document.getElementById('clubs-results');
     if (!container) return;
     
+    // Gestion des cas sans résultats
     if (!clubs || clubs.length === 0) {
         container.innerHTML = `
             <div class="no-results">
@@ -370,34 +576,117 @@ function displayClubs(clubs, title = 'Clubs') {
         return;
     }
 
+    // Charger les gymnases ET les logos pour tous les clubs
+    const clubsWithDetails = await Promise.all(
+        clubs.map(async (club) => {
+            try {
+                const [mainVenue, clubLogo] = await Promise.all([
+                    getClubMainVenue(club),
+                    getClubLogo(club)
+                ]);
+                return { ...club, mainVenue, clubLogo };
+            } catch (error) {
+                console.error(`Erreur chargement détails pour ${club.baseName}:`, error);
+                return { ...club, mainVenue: null, clubLogo: null };
+            }
+        })
+    );
+
     container.innerHTML = `
         <div style="margin-bottom: 16px; color: var(--text-muted); font-size: 16px; font-weight: 600;">
-            ${title} (${clubs.length})
+            ${title} (${clubsWithDetails.length})
         </div>
-        ${clubs.map(club => {
+        ${clubsWithDetails.map(club => {
+            // Données du club
             const isFav = isItemFavorite('club', club.baseName);
-            const teamCount = club.teamNames.length;
-            const levelInfo = club.levels.slice(0, 3).join(', ');
+            const teamCount = club.teamNames ? club.teamNames.length : 0;
+            const hasVariants = club.similarClubs && club.similarClubs.length > 0;
+            const hasParentheses = club.parenthesesVariants && club.parenthesesVariants.length > 0;
             
-            return `
-            <div class="card club-card" data-club-name="${club.baseName}">
-                <div class="card-header">
-                    <div class="card-icon">
+            
+            // Nettoyage des équipes
+            const clubTeams = club.teamNames ? club.teamNames.filter(teamName => {
+                if (!teamName || !club.baseName) return false;
+                const baseName = extractBaseClubName(teamName);
+                return calculateStringSimilarity(baseName, club.baseName) > 70 ||
+                       baseName.includes(club.baseName) || 
+                       club.baseName.includes(baseName);
+            }) : [];
+
+            const filteredTeamCount = clubTeams.length;
+            
+            // Badges pour les variantes
+            const badges = [];
+            if (hasVariants && club.similarClubs) {
+                badges.push(`<div class="card-badge" title="${club.similarClubs.length} variantes regroupées">
+                    <i class="ri-group-line"></i> ${club.similarClubs.length + 1}
+                </div>`);
+            }
+            
+            // Formater l'affichage du gymnase
+            let venueHtml = '';
+            if (club.mainVenue) {
+                const venueParts = club.mainVenue.split(', ');
+                const venueName = venueParts[0];
+                const venuePostal = venueParts[1] || '';
+                const venueCity = venueParts[2] || '';
+                
+                let venueDisplay = venueName;
+                if (venuePostal && venueCity) {
+                    venueDisplay = `<span style="font-size: 12px; color: var(--text-muted);">${venueName} ${venuePostal} ${venueCity}</span>`;
+                } else if (venueCity) {
+                    venueDisplay = `${venueName} (${venueCity})`;
+                }
+                
+                venueHtml = `
+                    <div style="margin-bottom: 4px;">
+                        <strong><i class="ri-map-pin-line" style="margin-right: 4px;"></i> Gymnase:</strong>
+                        <div style="margin-top: 2px;">${venueDisplay}</div>
+                    </div>
+                `;
+            } else {
+                venueHtml = `<div><strong><i class="ri-map-pin-line" style="margin-right: 4px;"></i> Gymnase :</strong> Non déterminé</div>`;
+            }
+
+            // HTML pour le logo du club
+            const logoHtml = club.clubLogo ? `
+                <div class="card-icon" style="background: transparent; box-shadow: none;">
+                    <img src="${club.clubLogo}" 
+                         alt="${club.representativeName || club.baseName}" 
+                         style="width: 52px; height: 52px; object-fit: contain; border-radius: 12px;"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="logo-fallback" style="display: none; width: 52px; height: 52px; border-radius: 12px; background: var(--gradient-primary); align-items: center; justify-content: center; font-size: 24px; color: white;">
                         <i class="ri-team-line"></i>
                     </div>
-                    <div class="card-title">${club.baseName}</div>
+                </div>
+            ` : `
+                <div class="card-icon">
+                    <i class="ri-team-line"></i>
+                </div>
+            `;
+            
+            console.log('📋 similarClubs:', club);
+            return `
+            <div class="card club-card" data-club-name="${club.baseName}" data-team-names="${clubTeams.join('|')}">
+                <div class="card-header">
+                    ${logoHtml}
+                    <div class="card-title">${club.normalizedNames[0]}</div>
+                    ${badges.join('')}
                     <button class="favorite-btn ${isFav ? 'active' : ''}" 
-                            onclick="event.stopPropagation(); toggleFavorite('club', '${club.baseName}', '${club.baseName}', 'club')">
+                            onclick="event.stopPropagation(); toggleFavorite('club', '${club.baseName.replace(/'/g, "\\'")}', '${club.representativeName ? club.representativeName.replace(/'/g, "\\'") : club.baseName.replace(/'/g, "\\'")}', 'club')">
                         <i class="ri-star-${isFav ? 'fill' : 'line'}"></i>
                     </button>
                 </div>
                 <div class="card-details">
-                    <div><strong>Équipes:</strong> ${teamCount} équipe${teamCount > 1 ? 's' : ''}</div>
-                    ${levelInfo ? `<div><strong>Niveaux:</strong> ${levelInfo}</div>` : ''}
+                    ${venueHtml}
                     ${club.matchCount ? `<div><strong>Matchs référencés:</strong> ${club.matchCount}</div>` : ''}
-                    ${teamCount > 1 ? `
-                    <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted);">
-                        <i class="ri-information-line"></i> Regroupe: ${club.teamNames.slice(0, 3).join(', ')}${teamCount > 3 ? '...' : ''}
+                    ${club.levels && club.levels.length > 0 ? `
+                    <div style="margin-top: 6px; font-size: 12px; color: var(--text-muted);">
+                        <i class="ri-trophy-line"></i> ${club.levels.slice(0, 5).map(level => {
+                            const cleanLevel = level.length > 15 ? level.substring(0, 15) + '...' : level;
+                            return cleanLevel;
+                        }).join(', ')}
+                        ${club.levels.length > 5 ? '...' : ''}
                     </div>
                     ` : ''}
                 </div>
@@ -406,18 +695,114 @@ function displayClubs(clubs, title = 'Clubs') {
         }).join('')}
     `;
 
-    // Ajouter les écouteurs d'événements pour les cartes de club
+    // Ajouter les écouteurs d'événements
     document.querySelectorAll('.club-card').forEach(card => {
         card.addEventListener('click', function() {
             const clubName = this.getAttribute('data-club-name');
-            loadClubDetails(clubName);
+            const teamNames = this.getAttribute('data-team-names').split('|').filter(name => name !== '');
+            if (clubName && teamNames.length > 0) {
+                loadClubDetails(clubName, teamNames);
+            }
         });
     });
 }
 
-async function loadClubDetails(clubName) {
+// Fonction pour obtenir le logo d'un club
+async function getClubLogo(club) {
     try {
-        showLoading('club-detail-container', `Chargement des détails pour ${clubName}...`);
+        if (!club || !club.teamNames || club.teamNames.length === 0) {
+            return null;
+        }
+
+        const mainTeam = club.teamNames[0];
+        const safeTeamName = mainTeam.replace(/'/g, "''").replace(/"/g, '""');
+        
+        const { data: allMatches, error } = await supabase
+            .from('matches')
+            .select('home_team, away_team, home_logo, away_logo')
+            .or(`home_team.eq."${safeTeamName}",away_team.eq."${safeTeamName}"`)
+            .or('home_logo.not.is.null,away_logo.not.is.null')
+            .neq('home_logo', '')
+            .neq('away_logo', '')
+            .order('date', { ascending: false })
+            .limit(20);
+
+        if (error || !allMatches || allMatches.length === 0) {
+            return null;
+        }
+
+        const logoCounts = {};
+        
+        allMatches.forEach(match => {
+            // Fonction pour valider et compter un logo
+            const processLogo = (logo, teamType) => {
+                if (!logo || typeof logo !== 'string') return;
+                
+                const trimmedLogo = logo.trim();
+                if (trimmedLogo === '') return;
+                
+                // Validation basique d'URL
+                if (!trimmedLogo.startsWith('http://') && !trimmedLogo.startsWith('https://')) {
+                    console.warn(`⚠️ Logo invalide pour ${mainTeam} (${teamType}): ${trimmedLogo}`);
+                    return;
+                }
+                
+                logoCounts[trimmedLogo] = (logoCounts[trimmedLogo] || 0) + 1;
+            };
+
+            // Traiter le logo domicile si l'équipe est à domicile
+            if (match.home_team === mainTeam) {
+                processLogo(match.home_logo, 'domicile');
+            }
+            
+            // Traiter le logo extérieur si l'équipe est à l'extérieur
+            if (match.away_team === mainTeam) {
+                processLogo(match.away_logo, 'extérieur');
+            }
+        });
+
+        // 1. Chercher un logo qui apparaît au moins 3 fois
+        for (const [logo, count] of Object.entries(logoCounts)) {
+            if (count >= 3) {
+                console.log(`✅ Logo fiable pour ${mainTeam}: ${logo} (${count} fois)`);
+                return logo;
+            }
+        }
+
+        // 2. Sinon, chercher un logo qui apparaît au moins 2 fois
+        for (const [logo, count] of Object.entries(logoCounts)) {
+            if (count >= 2) {
+                console.log(`⚠️ Logo modérément fiable pour ${mainTeam}: ${logo} (${count} fois)`);
+                return logo;
+            }
+        }
+
+        // 3. Fallback: prendre le logo le plus fréquent
+        if (Object.keys(logoCounts).length > 0) {
+            const fallbackLogo = Object.entries(logoCounts).reduce((max, [logo, count]) => 
+                count > max.count ? {logo, count} : max, 
+                {logo: null, count: 0}
+            );
+            
+            if (fallbackLogo.logo) {
+                console.log(`🔄 Fallback logo pour ${mainTeam}: ${fallbackLogo.logo} (${fallbackLogo.count} fois)`);
+                return fallbackLogo.logo;
+            }
+        }
+
+        console.log(`❌ Aucun logo valide trouvé pour ${mainTeam}`);
+        return null;
+        
+    } catch (error) {
+        console.error('❌ Erreur getClubLogo:', error);
+        return null;
+    }
+}
+
+// Dans loadClubDetails, améliorer la fonction pour mieux filtrer les équipes
+async function loadClubDetails(clubName, teamNamesFromCard = null) {
+    try {
+        showLoading('club-detail-container', `Chargement des détails...`);
         
         const clubsResults = document.getElementById('clubs-results');
         const clubDetailView = document.getElementById('club-detail-view');
@@ -425,35 +810,123 @@ async function loadClubDetails(clubName) {
         if (clubsResults) clubsResults.style.display = 'none';
         if (clubDetailView) clubDetailView.style.display = 'block';
 
-        // Stocker les détails du club courant
-        currentClubDetails = {
-            clubName: clubName
-        };
-
-        // Pour afficher les détails d'un club, on doit recharger les données spécifiques
-        // car on n'a pas chargé tous les clubs au démarrage
-        const { data, error } = await supabase
-            .from('matches')
-            .select('home_team, away_team, level')
-            .or(`home_team.ilike.%${clubName}%,away_team.ilike.%${clubName}%`)
-            .limit(200);
-
-        if (error) throw error;
-
-        // Regrouper les données pour ce club spécifique
-        const groupedClubs = groupSimilarClubs(data || []);
-        const club = groupedClubs.find(c => c.baseName === clubName);
+        // Si nous avons déjà les noms d'équipes depuis la carte, les utiliser
+        let clubTeams = teamNamesFromCard || [];
         
-        if (!club) {
-            showError('club-detail-container', 'Club non trouvé');
+        if (clubTeams.length === 0) {
+            // Sinon, rechercher les équipes du club dans la base
+            
+            // Rechercher des équipes qui ressemblent au nom du club
+            const { data: matchesData, error } = await supabase
+                .from('matches')
+                .select('home_team, away_team')
+                .or(`home_team.ilike.%${clubName}%,away_team.ilike.%${clubName}%`)
+                .limit(200);
+
+            if (error) throw error;
+
+            if (!matchesData || matchesData.length === 0) {
+                showError('club-detail-container', 'Club non trouvé');
+                return;
+            }
+
+            // Extraire TOUTES les équipes des matchs
+            const allTeams = new Set();
+            matchesData.forEach(match => {
+                if (match.home_team) allTeams.add(match.home_team);
+                if (match.away_team) allTeams.add(match.away_team);
+            });
+
+            // Filtrer pour ne garder que les équipes du club
+            clubTeams = Array.from(allTeams).filter(teamName => {
+                const teamBaseName = extractBaseClubName(teamName);
+                const similarity = calculateStringSimilarity(teamBaseName, clubName);
+                
+                // Garder les équipes qui sont similaires au club OU qui contiennent le nom du club
+                return similarity > 70 || 
+                       teamName.toLowerCase().includes(clubName.toLowerCase()) ||
+                       clubName.toLowerCase().includes(teamBaseName.toLowerCase());
+            });
+
+            console.log(`🔍 ${clubTeams.length} équipes trouvées pour le club`);
+        }
+
+        // Si toujours pas d'équipes, essayer une recherche plus large
+        if (clubTeams.length === 0) {
+            console.log('🔍 Recherche élargie pour trouver des équipes...');
+            
+            // Essayer avec des parties du nom
+            const nameParts = clubName.split(' ').filter(part => part.length > 3);
+            for (const part of nameParts) {
+                const { data: partData, error: partError } = await supabase
+                    .from('matches')
+                    .select('home_team, away_team')
+                    .or(`home_team.ilike.%${part}%,away_team.ilike.%${part}%`)
+                    .limit(100);
+                
+                if (!partError && partData) {
+                    partData.forEach(match => {
+                        if (match.home_team && !clubTeams.includes(match.home_team)) {
+                            const teamBaseName = extractBaseClubName(match.home_team);
+                            if (calculateStringSimilarity(teamBaseName, clubName) > 60) {
+                                clubTeams.push(match.home_team);
+                            }
+                        }
+                        if (match.away_team && !clubTeams.includes(match.away_team)) {
+                            const teamBaseName = extractBaseClubName(match.away_team);
+                            if (calculateStringSimilarity(teamBaseName, clubName) > 60) {
+                                clubTeams.push(match.away_team);
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        if (clubTeams.length === 0) {
+            showError('club-detail-container', 'Aucune équipe trouvée pour ce club');
             return;
         }
 
-        displayClubDetails(club);
+        // Trier les équipes (d'abord celles sans parenthèses, puis alphabétiquement)
+        clubTeams.sort((a, b) => {
+            const aHasParentheses = a.includes('(');
+            const bHasParentheses = b.includes('(');
+            
+            if (aHasParentheses && !bHasParentheses) return 1;
+            if (!aHasParentheses && bHasParentheses) return -1;
+            return a.localeCompare(b);
+        });
+
+        // Stocker les informations du club
+        currentClubDetails = { 
+            clubName: clubName,
+            teamNames: clubTeams
+        };
+
+        // Créer un objet club pour l'affichage
+        const club = {
+            baseName: clubName,
+            teamNames: clubTeams,
+            representativeName: clubTeams[0] || clubName,
+            levels: [], // On récupérera les niveaux des matchs
+            matchCount: 0,
+            similarClubs: [],
+            parenthesesVariants: []
+        };
+
+        currentClubDetails.clubData = club;
         
-        // Charger les équipes et matchs
+        console.log(`🔍 Club préparé avec ${club.teamNames.length} équipes:`, club.teamNames.slice(0, 5));
+        
+        // Récupérer les niveaux depuis les matchs
+        await loadClubLevels(club);
+        
+        displayClubDetails(club);
         await loadClubTeams(club);
         await loadClubUpcomingMatches(club);
+        
+        console.log('✅ ========== FIN loadClubDetails ==========');
         
     } catch (error) {
         console.error('❌ Erreur loadClubDetails:', error);
@@ -461,38 +934,237 @@ async function loadClubDetails(clubName) {
     }
 }
 
-function displayClubDetails(club) {
+// Nouvelle fonction pour charger les niveaux du club
+async function loadClubLevels(club) {
+    try {
+        if (!club.teamNames || club.teamNames.length === 0) return;
+        
+        // Prendre les 5 premières équipes pour la recherche
+        const sampleTeams = club.teamNames.slice(0, 5);
+        const levelsSet = new Set();
+        
+        for (const teamName of sampleTeams) {
+            try {
+                const safeTeamName = teamName.replace(/'/g, "''").replace(/"/g, '""');
+                const { data: matches, error } = await supabase
+                    .from('matches')
+                    .select('level')
+                    .or(`home_team.eq."${safeTeamName}",away_team.eq."${safeTeamName}"`)
+                    .limit(10);
+                
+                if (!error && matches) {
+                    matches.forEach(match => {
+                        if (match.level && match.level !== 'Inconnu') {
+                            levelsSet.add(match.level);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.warn(`⚠️ Erreur pour récupérer les niveaux de ${teamName}:`, error.message);
+            }
+        }
+        
+        club.levels = Array.from(levelsSet);
+        console.log(`📊 Niveaux trouvés: ${club.levels.join(', ')}`);
+        
+    } catch (error) {
+        console.error('❌ Erreur loadClubLevels:', error);
+    }
+}
+
+
+// Fonction pour obtenir le gymnase principal (version simplifiée)
+async function getClubMainVenue(club) {
+    try {
+        if (!club || !club.teamNames || club.teamNames.length === 0) {
+            return null;
+        }
+
+        // Prendre l'équipe principale
+        const mainTeam = club.teamNames[0];
+        const safeTeamName = mainTeam.replace(/'/g, "''").replace(/"/g, '""');
+        
+        const { data: homeMatches, error } = await supabase
+            .from('matches')
+            .select('venue_name, venue_address, city, postal_code')
+            .eq('home_team', safeTeamName)
+            .not('venue_name', 'is', null)
+            .neq('venue_name', 'Inconnu')
+            .neq('venue_name', '')
+            .limit(30);
+
+        if (error || !homeMatches || homeMatches.length === 0) {
+            return null;
+        }
+
+        // Compter les occurrences avec toutes les infos
+        const venueCounts = {};
+        homeMatches.forEach(match => {
+            const venueKey = `${match.venue_name}_${match.postal_code || ''}_${match.city || ''}`;
+            if (match.venue_name && match.venue_name !== 'Inconnu') {
+                if (!venueCounts[venueKey]) {
+                    venueCounts[venueKey] = {
+                        name: match.venue_name,
+                        postalCode: match.postal_code || '',
+                        city: match.city || '',
+                        count: 0
+                    };
+                }
+                venueCounts[venueKey].count++;
+            }
+        });
+
+        // Trouver le plus fréquent
+        let mainVenue = null;
+        let maxCount = 0;
+        
+        Object.values(venueCounts).forEach(venue => {
+            if (venue.count > maxCount) {
+                maxCount = venue.count;
+                mainVenue = venue;
+            }
+        });
+
+        if (!mainVenue) {
+            return null;
+        }
+
+        // Formater la réponse : "gymnase, 25000, BESANCON"
+        let result = mainVenue.name;
+        
+        if (mainVenue.postalCode || mainVenue.city) {
+            result += ', ';
+            
+            if (mainVenue.postalCode) {
+                result += mainVenue.postalCode;
+                if (mainVenue.city) {
+                    result += ', ' + mainVenue.city;
+                }
+            } else if (mainVenue.city) {
+                result += mainVenue.city;
+            }
+        }
+        
+        console.log(`🏟️ Gymnase principal trouvé: ${result} (${maxCount} matchs)`);
+        return result;
+        
+    } catch (error) {
+        console.error('❌ Erreur getClubMainVenue:', error);
+        return null;
+    }
+}
+
+// Fonction displayClubDetails mise à jour
+async function displayClubDetails(club) {
     const container = document.getElementById('club-detail-container');
     if (!container) return;
     
+    // Charger le gymnase principal ET le logo
+    const [mainVenue, clubLogo] = await Promise.all([
+        getClubMainVenue(club),
+        getClubLogo(club)
+    ]);
+    
     const isFav = isItemFavorite('club', club.baseName);
+    const safeClubName = club.baseName.replace(/'/g, "\\'");
+    const safeRepName = club.representativeName.replace(/'/g, "\\'");
 
+    // Préparer le HTML du gymnase
+    let venueHtml = '';
+    if (mainVenue) {
+        const venueParts = mainVenue.split(', ');
+        const venueName = venueParts[0];
+        const venuePostal = venueParts[1] || '';
+        const venueCity = venueParts[2] || '';
+        
+        const safeVenueName = venueName.replace(/'/g, "\\'");
+        
+        // Construire l'affichage
+        let venueDisplay = venueName;
+        if (venuePostal && venueCity) {
+            venueDisplay = `<span style="font-size: 12px; color: var(--text-muted);">${venueName} ${venuePostal} ${venueCity}</span>`;
+        } else if (venueCity) {
+            venueDisplay = `${venueName} (${venueCity})`;
+        }
+        
+        venueHtml = `
+            <div style="margin-top: 8px;">
+                <strong>Gymnase principal:</strong> 
+                <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                    <div style="flex: 1;">
+                        ${venueDisplay}
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        venueHtml = `<div style="margin-top: 8px;"><strong>Gymnase principal:</strong> Non déterminé</div>`;
+    }
+
+    // Préparer le HTML des niveaux
+    let levelsHtml = '';
+    if (club.levels && club.levels.length > 0) {
+        const levelsList = club.levels.slice(0, 10).map(level => {
+            const cleanLevel = level
+                .replace(/ vs /gi, ' / ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            
+            return `
+            <div class="filter-chip" onclick="searchMatchesByLevel('${cleanLevel.replace(/'/g, "\\'")}')">
+                ${cleanLevel.length > 25 ? cleanLevel.substring(0, 25) + '...' : cleanLevel}
+            </div>
+            `;
+        }).join('');
+        
+        levelsHtml = `
+            <div style="margin-top: 12px;">
+                <strong>Niveaux du club:</strong>
+                <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
+                    ${levelsList}
+                    ${club.levels.length > 10 ? `
+                    <div class="filter-chip" style="background: var(--border);">
+                        + ${club.levels.length - 10} autres
+                    </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    // HTML pour le logo du club
+    const logoHtml = clubLogo ? `
+        <div class="card-icon" style="background: transparent; box-shadow: none; width: 64px; height: 64px;">
+            <img src="${clubLogo}" 
+                 alt="${club.representativeName || club.baseName}" 
+                 style="width: 100%; height: 100%; object-fit: contain; border-radius: 16px;"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <div class="logo-fallback" style="display: none; width: 64px; height: 64px; border-radius: 16px; background: var(--gradient-primary); align-items: center; justify-content: center; font-size: 28px; color: white;">
+                <i class="ri-team-line"></i>
+            </div>
+        </div>
+    ` : `
+        <div class="card-icon" style="width: 64px; height: 64px;">
+            <i class="ri-team-line"></i>
+        </div>
+    `;
+
+    // Construire le HTML final
     const html = `
         <div class="card">
             <div class="card-header">
-                <div class="card-icon">
-                    <i class="ri-team-line"></i>
-                </div>
-                <div class="card-title">${club.baseName}</div>
+                ${logoHtml}
+                
+                <div class="card-title">${club.representativeName}</div>
                 <button class="favorite-btn ${isFav ? 'active' : ''}" 
-                        onclick="toggleFavorite('club', '${club.baseName}', '${club.baseName}', 'club')">
+                        onclick="toggleFavorite('club', '${safeClubName}', '${safeRepName}', 'club')">
                     <i class="ri-star-${isFav ? 'fill' : 'line'}"></i>
                 </button>
             </div>
             <div class="card-details">
                 <div><strong>Équipes:</strong> ${club.teamNames.length} équipe${club.teamNames.length > 1 ? 's' : ''}</div>
-                ${club.levels.length > 0 ? `<div><strong>Niveaux:</strong> ${club.levels.join(', ')}</div>` : ''}
-                <div><strong>Matchs référencés:</strong> ${club.matchCount}</div>
-                <div style="margin-top: 12px;">
-                    <strong>Équipes du club:</strong>
-                    <div style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
-                        ${club.teamNames.map(team => `
-                            <div class="filter-chip" onclick="searchTeamMatches('${team}')">
-                                ${team}
-                            </div>
-                        `).join('')}
-                    </div>
-                </div>
+                ${venueHtml}
+                ${levelsHtml}
             </div>
         </div>
     `;
@@ -507,19 +1179,27 @@ async function loadClubTeams(club) {
         const container = document.getElementById('club-teams-results');
         if (!container) return;
         
-        const teamsHtml = club.teamNames.map(teamName => {
+        const sortedTeams = [...club.teamNames].sort((a, b) => {
+            const aHasParentheses = a.includes('(');
+            const bHasParentheses = b.includes('(');
+            
+            if (aHasParentheses && !bHasParentheses) return 1;
+            if (!aHasParentheses && bHasParentheses) return -1;
+            return a.localeCompare(b);
+        });
+        
+        const teamsHtml = sortedTeams.map(teamName => {
+            const safeTeamName = teamName.replace(/'/g, "\\'");
+            const hasParentheses = teamName.includes('(');
+            const parenthesesIcon = hasParentheses ? '<i class="ri-parentheses-line" style="margin-right: 4px;"></i>' : '';
+            
             return `
             <div class="card" style="margin-bottom: 12px;">
                 <div class="card-header">
                     <div class="card-icon">
                         <i class="ri-user-line"></i>
                     </div>
-                    <div class="card-title">${teamName}</div>
-                </div>
-                <div class="card-details">
-                    <button class="search-button" onclick="searchTeamMatches('${teamName}')" style="margin-top: 8px;">
-                        <i class="ri-search-line"></i> Voir les matchs
-                    </button>
+                    <div class="card-title">${parenthesesIcon}${teamName.length > 40 ? teamName.substring(0, 40) + '...' : teamName}</div>
                 </div>
             </div>
             `;
@@ -533,27 +1213,68 @@ async function loadClubTeams(club) {
     }
 }
 
-async function loadClubUpcomingMatches(club) {
+// FONCTIONS AMÉLIORÉES pour charger les matchs du club
+async function loadClubUpcomingMatches(club = null) {
     try {
-        if (!currentClubDetails) return;
-        
+        const clubToUse = club || currentClubDetails?.clubData;
+        if (!clubToUse) {
+            showError('club-matches-results', 'Club non trouvé');
+            return;
+        }
+
+        console.log(`📅 Recherche matchs à venir pour ${clubToUse.teamNames.length} équipes`);
         showLoading('club-matches-results', 'Chargement des matchs à venir...');
         
-        // Utiliser les noms d'équipes pour rechercher les matchs
-        const teamNames = club.teamNames;
+        const today = new Date().toISOString().split('T')[0];
+        let allMatches = [];
         
-        const { data: matchesData, error } = await supabase
-            .from('matches')
-            .select('*')
-            .or(teamNames.map(team => `home_team.eq.${team},away_team.eq.${team}`).join(','))
-            .order('date', { ascending: true })
-            .order('time', { ascending: true })
-            .limit(20);
+        // Rechercher les matchs pour chaque équipe (limité à 15 équipes)
+        const teamsToSearch = clubToUse.teamNames.slice(0, 15);
+        
+        for (const teamName of teamsToSearch) {
+            try {
+                const safeTeamName = teamName.replace(/'/g, "''").replace(/"/g, '""');
+                const { data: teamMatches, error } = await supabase
+                    .from('matches')
+                    .select('*')
+                    .or(`home_team.eq."${safeTeamName}",away_team.eq."${safeTeamName}"`)
+                    .gte('date', today)
+                    .order('date', { ascending: true })
+                    .order('time', { ascending: true })
+                    .limit(10);
+                
+                if (!error && teamMatches && teamMatches.length > 0) {
+                    allMatches = [...allMatches, ...teamMatches];
+                }
+            } catch (error) {
+                console.warn(`⚠️ Erreur pour l'équipe ${teamName}:`, error.message);
+            }
+            
+            // Petite pause pour éviter de surcharger l'API
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
 
-        if (error) throw error;
+        // Supprimer les doublons
+        const uniqueMatches = [];
+        const seenMatches = new Set();
+        
+        allMatches.forEach(match => {
+            const matchKey = `${match.date}_${match.time}_${match.home_team}_${match.away_team}`;
+            if (!seenMatches.has(matchKey)) {
+                seenMatches.add(matchKey);
+                uniqueMatches.push(match);
+            }
+        });
 
-        console.log(`🎯 ${matchesData?.length || 0} matchs à venir trouvés pour le club`);
-        displayClubMatches(matchesData || [], 'club-matches-results', 'Matchs à venir');
+        // Trier par date et heure
+        uniqueMatches.sort((a, b) => {
+            const dateCompare = new Date(a.date) - new Date(b.date);
+            if (dateCompare !== 0) return dateCompare;
+            return (a.time || '').localeCompare(b.time || '');
+        });
+
+        console.log(`🎯 ${uniqueMatches.length} matchs à venir trouvés`);
+        displayClubMatches(uniqueMatches, 'club-matches-results', 'Matchs à venir', clubToUse.levels);
         
     } catch (error) {
         console.error('❌ Erreur loadClubUpcomingMatches:', error);
@@ -561,29 +1282,70 @@ async function loadClubUpcomingMatches(club) {
     }
 }
 
-async function loadClubRecentResults(club) {
+async function loadClubRecentResults(club = null) {
     try {
-        if (!currentClubDetails) return;
-        
+        const clubToUse = club || currentClubDetails?.clubData;
+        if (!clubToUse) {
+            showError('club-matches-results', 'Club non trouvé');
+            return;
+        }
+
+        console.log(`📊 Recherche résultats pour ${clubToUse.teamNames.length} équipes`);
         showLoading('club-matches-results', 'Chargement des résultats...');
         
-        // Utiliser les noms d'équipes pour rechercher les matchs
-        const teamNames = club.teamNames;
+        const today = new Date();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
         
-        const { data: matchesData, error } = await supabase
-            .from('matches')
-            .select('*')
-            .or(teamNames.map(team => `home_team.eq.${team},away_team.eq.${team}`).join(','))
-            .not('score_home', 'is', null)
-            .not('score_away', 'is', null)
-            .order('date', { ascending: false })
-            .order('time', { ascending: false })
-            .limit(20);
+        let allResults = [];
+        
+        // Rechercher les résultats pour chaque équipe (limité à 15 équipes)
+        const teamsToSearch = clubToUse.teamNames.slice(0, 15);
+        
+        for (const teamName of teamsToSearch) {
+            try {
+                const safeTeamName = teamName.replace(/'/g, "''").replace(/"/g, '""');
+                const { data: teamResults, error } = await supabase
+                    .from('matches')
+                    .select('*')
+                    .or(`home_team.eq."${safeTeamName}",away_team.eq."${safeTeamName}"`)
+                    .gte('date', thirtyDaysAgoStr)
+                    .lte('date', today.toISOString().split('T')[0])
+                    .not('score_home', 'is', null)
+                    .not('score_away', 'is', null)
+                    .order('date', { ascending: false })
+                    .order('time', { ascending: false })
+                    .limit(10);
+                
+                if (!error && teamResults && teamResults.length > 0) {
+                    allResults = [...allResults, ...teamResults];
+                }
+            } catch (error) {
+                console.warn(`⚠️ Erreur pour l'équipe ${teamName}:`, error.message);
+            }
+            
+            // Petite pause pour éviter de surcharger l'API
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
 
-        if (error) throw error;
+        // Supprimer les doublons
+        const uniqueResults = [];
+        const seenResults = new Set();
+        
+        allResults.forEach(match => {
+            const matchKey = `${match.date}_${match.time}_${match.home_team}_${match.away_team}`;
+            if (!seenResults.has(matchKey)) {
+                seenResults.add(matchKey);
+                uniqueResults.push(match);
+            }
+        });
 
-        console.log(`🎯 ${matchesData?.length || 0} résultats trouvés pour le club`);
-        displayClubMatchResults(matchesData || [], 'club-matches-results', 'Résultats');
+        // Trier par date décroissante
+        uniqueResults.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        console.log(`🎯 ${uniqueResults.length} résultats trouvés`);
+        displayClubMatchResults(uniqueResults, 'club-matches-results', 'Résultats', clubToUse.levels);
         
     } catch (error) {
         console.error('❌ Erreur loadClubRecentResults:', error);
@@ -591,14 +1353,302 @@ async function loadClubRecentResults(club) {
     }
 }
 
-function displayClubMatches(matches, containerId, title = 'Matchs') {
-    // Réutiliser la fonction displayMatches existante
-    displayMatches(matches, containerId, title);
+// Fonctions d'affichage avec filtrage par niveau (inchangées)
+function displayClubMatches(matches, containerId, title = 'Matchs', availableLevels = []) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    if (!matches || matches.length === 0) {
+        container.innerHTML = `
+            <div class="no-results">
+                <div class="no-results-icon">
+                    <i class="ri-calendar-line"></i>
+                </div>
+                <div>Aucun match trouvé</div>
+                <div style="margin-top: 8px; font-size: 14px; color: var(--text-muted);">
+                    Aucun match programmé
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    // Extraire les niveaux uniques
+    const uniqueLevels = [...new Set(matches.map(m => m.level).filter(Boolean))];
+    
+    // Créer un ID unique pour le conteneur de liste
+    const listId = `club-matches-list-${Date.now()}`;
+    
+    // IMPORTANT: Structure simplifiée SANS flex justify-between
+    let html = '';
+    
+    // Ajouter le sélecteur de niveau AVANT la liste, pas à côté du titre
+    if (uniqueLevels.length > 1) {
+        html += `
+            <div style="margin-bottom: 16px; display: flex; justify-content: center; width: 100%;">
+                <select id="club-level-filter" 
+                        style="width: 100%;">
+                    <option value="all">Tous les niveaux</option>
+                    ${uniqueLevels.map(level => `<option value="${level}">${level}</option>`).join('')}
+                </select>
+            </div>
+        `;
+    }
+    
+    html += `
+        <div style="margin-bottom: 8px; color: var(--text-muted); font-size: 16px; font-weight: 600; width: 100%;">
+            ${title} (${matches.length})
+        </div>
+        <div id="${listId}" style="width: 100%;">
+            ${renderMatchesList(matches)}
+        </div>
+    `;
+    
+    container.innerHTML = html;
+
+    // Stocker les matchs pour le filtrage
+    if (container.dataset) {
+        container.dataset.allMatches = JSON.stringify(matches);
+    }
+
+    // Ajouter l'écouteur pour le filtre de niveau
+    if (uniqueLevels.length > 1) {
+        const levelFilter = document.getElementById('club-level-filter');
+        if (levelFilter) {
+            levelFilter.addEventListener('change', function() {
+                const selectedLevel = this.value;
+                let filteredMatches;
+                
+                if (selectedLevel === 'all') {
+                    filteredMatches = matches;
+                } else {
+                    filteredMatches = matches.filter(m => m.level === selectedLevel);
+                }
+                
+                const matchesList = document.getElementById(listId);
+                if (matchesList) {
+                    matchesList.innerHTML = renderMatchesList(filteredMatches);
+                    // Mettre à jour le titre avec le nouveau nombre
+                    const titleElement = container.querySelector('div[style*="font-weight: 600"]');
+                    if (titleElement) {
+                        titleElement.textContent = `${title} (${filteredMatches.length})`;
+                    }
+                }
+            });
+        }
+    }
 }
 
-function displayClubMatchResults(matches, containerId, title = 'Résultats') {
-    // Réutiliser la fonction displayMatchResults existante
-    displayMatchResults(matches, containerId, title);
+function displayClubMatchResults(matches, containerId, title = 'Résultats', availableLevels = []) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    
+    if (!matches || matches.length === 0) {
+        container.innerHTML = `
+            <div class="no-results">
+                <div class="no-results-icon">
+                    <i class="ri-trophy-line"></i>
+                </div>
+                <div>Aucun résultat trouvé</div>
+                <div style="margin-top: 8px; font-size: 14px; color: var(--text-muted);">
+                    Aucun match terminé pour cette période
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    // Extraire les niveaux uniques
+    const uniqueLevels = [...new Set(matches.map(m => m.level).filter(Boolean))];
+    
+    // Créer un ID unique pour le conteneur de liste
+    const listId = `club-results-list-${Date.now()}`;
+    
+    let html = '';
+    
+    // Ajouter le sélecteur de niveau AVANT la liste
+    if (uniqueLevels.length > 1) {
+        html += `
+            <div style="margin-bottom: 16px; display: flex; justify-content: center; width: 100%;">
+                <select id="club-results-level-filter" 
+                        style="width: 100%;">
+                    <option value="all">Tous les niveaux</option>
+                    ${uniqueLevels.map(level => `<option value="${level}">${level}</option>`).join('')}
+                </select>
+            </div>
+        `;
+    }
+    
+    html += `
+        <div style="margin-bottom: 8px; color: var(--text-muted); font-size: 16px; font-weight: 600; width: 100%;">
+            ${title} (${matches.length})
+        </div>
+        <div id="${listId}" style="width: 100%;">
+            ${renderMatchResultsList(matches)}
+        </div>
+    `;
+    
+    container.innerHTML = html;
+
+    // Stocker les matchs pour le filtrage
+    if (container.dataset) {
+        container.dataset.allMatches = JSON.stringify(matches);
+    }
+
+    // Ajouter l'écouteur pour le filtre de niveau
+    if (uniqueLevels.length > 1) {
+        const levelFilter = document.getElementById('club-results-level-filter');
+        if (levelFilter) {
+            levelFilter.addEventListener('change', function() {
+                const selectedLevel = this.value;
+                let filteredMatches;
+                
+                if (selectedLevel === 'all') {
+                    filteredMatches = matches;
+                } else {
+                    filteredMatches = matches.filter(m => m.level === selectedLevel);
+                }
+                
+                const matchesList = document.getElementById(listId);
+                if (matchesList) {
+                    matchesList.innerHTML = renderMatchResultsList(filteredMatches);
+                    // Mettre à jour le titre avec le nouveau nombre
+                    const titleElement = container.querySelector('div[style*="font-weight: 600"]');
+                    if (titleElement) {
+                        titleElement.textContent = `${title} (${filteredMatches.length})`;
+                    }
+                }
+            });
+        }
+    }
+}
+
+// Les fonctions renderMatchesList et renderMatchResultsList restent inchangées
+function renderMatchesList(matches) {
+    return matches.map(match => {
+        const matchDate = new Date(match.date);
+        const formattedDate = matchDate.toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long'
+        });
+        
+        const venueInfo = formatVenueInfo(match);
+        const formattedTime = formatTime(match.time);
+        
+        return `
+        <div class="match-card">
+            <div class="match-header">
+                <div class="match-date">${formattedDate}</div>
+                <div class="match-level">${match.level || 'Niveau inconnu'}</div>
+            </div>
+            <div class="teams-container">
+                <div class="team">
+                    <div class="team-logo">
+                        ${match.home_logo ? 
+                            `<img src="${match.home_logo}" alt="${match.home_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+                            ''
+                        }
+                        <div class="logo-fallback" style="${match.home_logo ? 'display: none;' : 'display: flex;'}">🏠</div>
+                    </div>
+                    <div class="team-name">${match.home_team}</div>
+                    <!-- Conteneur de score vide pour alignement -->
+                    <div class="score-container" style="visibility: hidden;">
+                        <div class="match-score">-</div>
+                    </div>
+                </div>
+                <div class="vs">VS</div>
+                <div class="team">
+                    <div class="team-logo">
+                        ${match.away_logo ? 
+                            `<img src="${match.away_logo}" alt="${match.away_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+                            ''
+                        }
+                        <div class="logo-fallback" style="${match.away_logo ? 'display: none;' : 'display: flex;'}">✈️</div>
+                    </div>
+                    <div class="team-name">${match.away_team}</div>
+                    <!-- Conteneur de score vide pour alignement -->
+                    <div class="score-container" style="visibility: hidden;">
+                        <div class="match-score">-</div>
+                    </div>
+                </div>
+            </div>
+            <div class="match-footer">
+                <div class="match-venue">
+                    ${formattedTime || 'Heure non précisée'} - ${venueInfo}
+                </div>
+            </div>
+        </div>
+        `;
+    }).join('');
+}
+
+function renderMatchResultsList(matches) {
+    return matches.map(match => {
+        const matchDate = new Date(match.date);
+        const formattedDate = matchDate.toLocaleDateString('fr-FR', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long'
+        });
+        
+        const homeScore = parseInt(match.score_home) || 0;
+        const awayScore = parseInt(match.score_away) || 0;
+        const homeWon = homeScore > awayScore;
+        const awayWon = awayScore > homeScore;
+        
+        const venueInfo = formatVenueInfo(match);
+        const formattedTime = formatTime(match.time);
+        
+        const hasFdm = match.fdm_url && match.fdm_url !== '';
+        const fdmUrl = hasFdm ? match.fdm_url.replace(/'/g, "\\'") : '';
+        
+        return `
+        <div class="match-card">
+            <div class="match-header">
+                <div class="match-date">${formattedDate}</div>
+                <div class="match-level">${match.level || 'Niveau inconnu'}</div>
+            </div>
+            <div class="teams-container">
+                <div class="team ${homeWon ? 'winner' : ''}">
+                    <div class="team-logo">
+                        ${match.home_logo ? 
+                            `<img src="${match.home_logo}" alt="${match.home_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+                            ''
+                        }
+                        <div class="logo-fallback" style="${match.home_logo ? 'display: none;' : 'display: flex;'}">🏠</div>
+                    </div>
+                    <div class="team-name">${match.home_team}</div>
+                    <div class="score-container ${homeWon ? 'winner-score' : ''}">
+                        <div class="match-score">${match.score_home || '-'}</div>
+                    </div>
+                </div>
+                <div class="vs">VS</div>
+                <div class="team ${awayWon ? 'winner' : ''}">
+                    <div class="team-logo">
+                        ${match.away_logo ? 
+                            `<img src="${match.away_logo}" alt="${match.away_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
+                            ''
+                        }
+                        <div class="logo-fallback" style="${match.away_logo ? 'display: none;' : 'display: flex;'}">✈️</div>
+                    </div>
+                    <div class="team-name">${match.away_team}</div>
+                    <div class="score-container ${awayWon ? 'winner-score' : ''}">
+                        <div class="match-score">${match.score_away || '-'}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="match-footer">
+                <div class="match-venue">${formattedTime} - ${venueInfo}</div>
+                ${hasFdm ? `
+                <button class="fdm-button" onclick="openFdmModal('${fdmUrl}')" title="Voir la feuille de match">
+                    <i class="ri-file-text-line"></i>
+                </button>
+                ` : ''}
+            </div>
+        </div>
+        `;
+    }).join('');
 }
 
 function showClubsList() {
@@ -608,138 +1658,22 @@ function showClubsList() {
     if (clubsResults) clubsResults.style.display = 'block';
     if (clubDetailView) clubDetailView.style.display = 'none';
     
-    // Réinitialiser les détails de club courants
     currentClubDetails = null;
 }
 
-// FONCTIONS SPÉCIFIQUES POUR LA PAGE MATCHS
+// FONCTIONS POUR LA PAGE MATCHS
 async function initMatchesPage() {
     console.log('🚀 Initialisation de la page matchs...');
     await initMatchesEventListeners();
     requestLocationPermission();
-    
-    // Charger les matchs à venir par défaut
     loadUpcomingMatches();
 }
 
-// Gestionnaire d'événements pour la navigation
-document.addEventListener('DOMContentLoaded', function() {
-    const navItems = document.querySelectorAll('.nav-item');
-    
-    navItems.forEach(item => {
-        item.addEventListener('click', function() {
-            const target = this.getAttribute('data-target');
-            if (target) {
-                window.location.href = `${target}.html`;
-            }
-        });
-    });
-});
-
-// FONCTIONS POUR LA PAGE HOME
-function initHomeEventListeners() {
-    // Recherche globale
-    const homeSearchBtn = document.getElementById('home-search-button');
-    const homeSearchInput = document.getElementById('home-search');
-    
-    if (homeSearchBtn && homeSearchInput) {
-        homeSearchBtn.addEventListener('click', performGlobalSearch);
-        homeSearchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') performGlobalSearch();
-        });
-    }
-
-    // Actions rapides
-    document.querySelectorAll('.quick-action').forEach(action => {
-        action.addEventListener('click', function() {
-            const actionType = this.getAttribute('data-action');
-            handleQuickAction(actionType);
-        });
-    });
-}
-
-function handleQuickAction(action) {
-    switch(action) {
-        case 'nearby':
-            showNotification('Recherche des matchs près de vous...');
-            break;
-        case 'today':
-            showNotification('Affichage des matchs du jour...');
-            break;
-        case 'favorites':
-            showNotification('Ouverture des favoris...');
-            break;
-        case 'venues':
-            window.location.href = 'salles.html';
-            break;
-    }
-}
-
-// FONCTIONS POUR LA PAGE SALLES
-function initSallesEventListeners() {
-    console.log('🎯 Initialisation des écouteurs salles...');
-    
-    const venueSearchBtn = document.getElementById('venue-search-button');
-    const venueSearchInput = document.getElementById('venue-search');
-    
-    console.log('🔍 Éléments trouvés:', {
-        venueSearchBtn: !!venueSearchBtn,
-        venueSearchInput: !!venueSearchInput
-    });
-
-    if (venueSearchBtn && venueSearchInput) {
-        venueSearchBtn.onclick = () => {
-            const term = venueSearchInput.value.trim();
-            console.log('🖱️ Bouton cliqué - Recherche:', term);
-            if (term) {
-                searchVenues(term);
-            } else {
-                showNotification('Veuillez entrer un terme de recherche');
-            }
-        };
-        
-        venueSearchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                const term = venueSearchInput.value.trim();
-                console.log('⌨️ Enter pressé - Recherche:', term);
-                if (term) {
-                    searchVenues(term);
-                } else {
-                    showNotification('Veuillez entrer un terme de recherche');
-                }
-            }
-        });
-        
-        console.log('✅ Écouteurs salles attachés avec succès');
-    } else {
-        console.error('❌ Éléments de recherche non trouvés');
-        showNotification('Erreur: éléments de recherche non chargés');
-    }
-
-    const refreshVenues = document.getElementById('refresh-venues');
-    if (refreshVenues) {
-        refreshVenues.onclick = () => {
-            console.log('🔄 Actualisation salles');
-            loadVenuesNearby();
-        };
-    }
-
-    const backToVenues = document.getElementById('back-to-venues');
-    if (backToVenues) {
-        backToVenues.onclick = () => {
-            showVenuesList();
-        };
-    }
-}
-
-// FONCTIONS POUR LA PAGE MATCHS
 function initMatchesEventListeners() {
     console.log('🎯 Initialisation des écouteurs matchs...');
     
-    // Initialiser les onglets
     initMatchesTabs();
     
-    // Recherche de matchs
     const matchSearchBtn = document.getElementById('match-search-button');
     const matchSearchInput = document.getElementById('match-search');
     
@@ -767,16 +1701,14 @@ function initMatchesEventListeners() {
         });
     }
 
-    // Filtres rapides pour matchs à venir
     document.querySelectorAll('#upcoming-filters .filter-chip[data-filter]').forEach(chip => {
         chip.addEventListener('click', function() {
             const filter = this.getAttribute('data-filter');
-            currentMatchFilter = filter; // Mettre à jour le filtre actuel
+            currentMatchFilter = filter;
             handleMatchFilter(filter, this);
         });
     });
 
-    // Filtres pour résultats
     document.querySelectorAll('#results-filters .filter-chip[data-filter]').forEach(chip => {
         chip.addEventListener('click', function() {
             const filter = this.getAttribute('data-filter');
@@ -784,7 +1716,6 @@ function initMatchesEventListeners() {
         });
     });
 
-    // Recherche par date pour matchs à venir
     const dateSearchBtn = document.getElementById('date-search-button');
     if (dateSearchBtn) {
         dateSearchBtn.onclick = () => {
@@ -797,7 +1728,6 @@ function initMatchesEventListeners() {
         };
     }
 
-    // Recherche par date pour résultats
     const resultsDateSearchBtn = document.getElementById('results-date-search-button');
     if (resultsDateSearchBtn) {
         resultsDateSearchBtn.onclick = () => {
@@ -810,17 +1740,14 @@ function initMatchesEventListeners() {
         };
     }
 
-    // Actualiser les matchs
     const refreshMatches = document.getElementById('refresh-matches');
     if (refreshMatches) {
         refreshMatches.onclick = () => {
             console.log('🔄 Actualisation matchs');
-            // Recharger selon l'onglet actif
             const activeTab = document.querySelector('.tab.active');
             if (activeTab && activeTab.getAttribute('data-tab') === 'results') {
                 loadRecentResults();
             } else {
-                // Recharger avec le filtre actuel et le terme de recherche
                 const searchTerm = document.getElementById('match-search').value.trim();
                 if (searchTerm) {
                     searchMatches(searchTerm);
@@ -831,7 +1758,6 @@ function initMatchesEventListeners() {
         };
     }
 
-    // Bouton retour
     const backToMatches = document.getElementById('back-to-matches');
     if (backToMatches) {
         backToMatches.onclick = () => {
@@ -852,16 +1778,10 @@ function initMatchesTabs() {
 }
 
 function switchMatchesTab(tabType, element) {
-    // Mettre à jour les onglets actifs
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('active');
-    });
+    document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
     element.classList.add('active');
     
-    // Mettre à jour le titre de section
     const sectionTitle = document.getElementById('matches-section-title');
-    
-    // Gérer l'affichage des filtres selon l'onglet
     const upcomingFilters = document.getElementById('upcoming-filters');
     const resultsFilters = document.getElementById('results-filters');
     const upcomingDatePicker = document.getElementById('date-picker-container');
@@ -869,13 +1789,11 @@ function switchMatchesTab(tabType, element) {
     
     if (tabType === 'upcoming') {
         sectionTitle.textContent = 'Matchs à venir';
-        // Afficher les filtres matchs à venir
         if (upcomingFilters) upcomingFilters.style.display = 'flex';
         if (resultsFilters) resultsFilters.style.display = 'none';
         if (upcomingDatePicker) upcomingDatePicker.style.display = 'none';
         if (resultsDatePicker) resultsDatePicker.style.display = 'none';
         
-        // Activer le filtre "À venir" par défaut
         document.querySelectorAll('#upcoming-filters .filter-chip').forEach(chip => chip.classList.remove('active'));
         const upcomingChip = document.querySelector('#upcoming-filters .filter-chip[data-filter="upcoming"]');
         if (upcomingChip) upcomingChip.classList.add('active');
@@ -884,13 +1802,11 @@ function switchMatchesTab(tabType, element) {
         
     } else if (tabType === 'results') {
         sectionTitle.textContent = 'Résultats';
-        // Afficher les filtres résultats
         if (upcomingFilters) upcomingFilters.style.display = 'none';
         if (resultsFilters) resultsFilters.style.display = 'flex';
         if (upcomingDatePicker) upcomingDatePicker.style.display = 'none';
         if (resultsDatePicker) resultsDatePicker.style.display = 'none';
         
-        // Activer le filtre "Récent" par défaut
         document.querySelectorAll('#results-filters .filter-chip').forEach(chip => chip.classList.remove('active'));
         const recentChip = document.querySelector('#results-filters .filter-chip[data-filter="recent"]');
         if (recentChip) recentChip.classList.add('active');
@@ -925,18 +1841,13 @@ async function loadUpcomingMatches() {
 function handleMatchFilter(filter, element = null) {
     console.log('🎯 Filtre matchs:', filter);
     
-    // Récupérer le terme de recherche actuel
     const searchTerm = document.getElementById('match-search').value.trim();
     
-    // Si un élément est fourni, mettre à jour les classes actives
     if (element) {
-        document.querySelectorAll('#upcoming-filters .filter-chip').forEach(chip => {
-            chip.classList.remove('active');
-        });
+        document.querySelectorAll('#upcoming-filters .filter-chip').forEach(chip => chip.classList.remove('active'));
         element.classList.add('active');
     }
     
-    // Gérer l'affichage du sélecteur de date
     const datePicker = document.getElementById('date-picker-container');
     if (filter === 'calendar') {
         datePicker.style.display = datePicker.style.display === 'none' ? 'block' : 'none';
@@ -957,7 +1868,6 @@ function handleMatchFilter(filter, element = null) {
             }
             break;
         case 'weekend':
-            // Calculer le week-end (samedi et dimanche)
             const dayOfWeek = today.getDay();
             const saturday = new Date(today);
             saturday.setDate(today.getDate() + (6 - dayOfWeek));
@@ -1001,7 +1911,6 @@ async function loadMatchesNearby() {
 
         console.log('📍 Recherche matchs dans un rayon de 10km');
 
-        // Récupérer toutes les salles avec coordonnées
         const { data: venuesData, error: venuesError } = await supabase
             .from('matches')
             .select('venue_name, venue_address, city, longitude, latitude')
@@ -1012,7 +1921,6 @@ async function loadMatchesNearby() {
 
         if (venuesError) throw venuesError;
 
-        // Filtrer les salles dans un rayon de 10km
         const nearbyVenues = filterVenuesByDistance(venuesData, userLocation, 10);
         const venueNames = nearbyVenues.map(venue => venue.venue_name);
         
@@ -1023,7 +1931,6 @@ async function loadMatchesNearby() {
             return;
         }
 
-        // Récupérer les matchs dans ces salles
         const today = new Date().toISOString().split('T')[0];
         const { data: matchesData, error: matchesError } = await supabase
             .from('matches')
@@ -1049,12 +1956,10 @@ async function searchMatches(searchTerm) {
     try {
         console.log('🔍 Recherche matchs:', searchTerm);
         
-        // Déterminer l'onglet actif
         const activeTab = document.querySelector('.tab.active');
         const isResultsTab = activeTab && activeTab.getAttribute('data-tab') === 'results';
         
         if (isResultsTab) {
-            // Recherche dans les résultats
             showLoading('matches-results', `Recherche de résultats pour "${searchTerm}"...`);
             
             const today = new Date();
@@ -1080,7 +1985,6 @@ async function searchMatches(searchTerm) {
             displayMatchResults(data, 'matches-results', `Résultats pour "${searchTerm}"`);
             
         } else {
-            // Recherche dans les matchs à venir (comportement existant)
             showLoading('matches-results', `Recherche de matchs pour "${searchTerm}"...`);
             
             const today = new Date().toISOString().split('T')[0];
@@ -1154,7 +2058,6 @@ async function searchMatchesByDateRange(startDate, endDate) {
     }
 }
 
-// NOUVELLES FONCTIONS POUR LA COMBINAISON FILTRE + RECHERCHE
 async function searchMatchesByDateAndTerm(date, searchTerm) {
     try {
         console.log('📅🔍 Recherche matchs pour:', date, 'avec terme:', searchTerm);
@@ -1217,7 +2120,6 @@ async function searchMatchesNearbyWithTerm(searchTerm) {
 
         console.log('📍 Recherche matchs dans un rayon de 10km pour:', searchTerm);
 
-        // Récupérer toutes les salles avec coordonnées
         const { data: venuesData, error: venuesError } = await supabase
             .from('matches')
             .select('venue_name, venue_address, city, longitude, latitude')
@@ -1228,7 +2130,6 @@ async function searchMatchesNearbyWithTerm(searchTerm) {
 
         if (venuesError) throw venuesError;
 
-        // Filtrer les salles dans un rayon de 10km
         const nearbyVenues = filterVenuesByDistance(venuesData, userLocation, 10);
         const venueNames = nearbyVenues.map(venue => venue.venue_name);
         
@@ -1239,7 +2140,6 @@ async function searchMatchesNearbyWithTerm(searchTerm) {
             return;
         }
 
-        // Récupérer les matchs dans ces salles avec le terme de recherche
         const today = new Date().toISOString().split('T')[0];
         const { data: matchesData, error: matchesError } = await supabase
             .from('matches')
@@ -1266,10 +2166,7 @@ async function searchMatchesNearbyWithTerm(searchTerm) {
 function handleResultsFilter(filter, element) {
     console.log('🎯 Filtre résultats:', filter);
     
-    // Récupérer le terme de recherche actuel
     const searchTerm = document.getElementById('match-search').value.trim();
-    
-    // Gérer l'affichage du sélecteur de date
     const datePicker = document.getElementById('results-date-picker-container');
     if (filter === 'results-date') {
         datePicker.style.display = datePicker.style.display === 'none' ? 'block' : 'none';
@@ -1278,10 +2175,7 @@ function handleResultsFilter(filter, element) {
         datePicker.style.display = 'none';
     }
     
-    // Mettre à jour les filtres actifs
-    document.querySelectorAll('#results-filters .filter-chip').forEach(chip => {
-        chip.classList.remove('active');
-    });
+    document.querySelectorAll('#results-filters .filter-chip').forEach(chip => chip.classList.remove('active'));
     element.classList.add('active');
 
     const today = new Date();
@@ -1295,7 +2189,6 @@ function handleResultsFilter(filter, element) {
             }
             break;
         case 'last-weekend':
-            // Week-end dernier (samedi et dimanche de la semaine dernière)
             const lastSaturday = new Date(today);
             lastSaturday.setDate(today.getDate() - today.getDay() - 1);
             const lastSunday = new Date(today);
@@ -1311,7 +2204,6 @@ function handleResultsFilter(filter, element) {
             }
             break;
         case 'last-week':
-            // 7 derniers jours complets
             const lastWeekStart = new Date(today);
             lastWeekStart.setDate(today.getDate() - 7);
             const lastWeekEnd = new Date(today);
@@ -1327,7 +2219,6 @@ function handleResultsFilter(filter, element) {
             }
             break;
         case 'two-weeks-ago':
-            // Week-end d'il y a 2 semaines
             const twoWeeksAgoSaturday = new Date(today);
             twoWeeksAgoSaturday.setDate(today.getDate() - today.getDay() - 8);
             const twoWeeksAgoSunday = new Date(today);
@@ -2395,6 +3286,7 @@ function displayVenueMatchResults(matches, containerId, title = 'Résultats') {
             const formattedTime = formatTime(match.time);
             
             const hasFdm = match.fdm_url && match.fdm_url !== '';
+            const safeFdmUrl = hasFdm ? match.fdm_url.replace(/'/g, "\\'") : '';
             
             return `
             <div class="match-card" data-match-index="${index}">
@@ -2434,7 +3326,7 @@ function displayVenueMatchResults(matches, containerId, title = 'Résultats') {
                 <div class="match-footer">
                     <div class="match-venue">${formattedTime} - ${venueInfo}</div>
                     ${hasFdm ? `
-                    <button class="fdm-button" data-fdm-url="${match.fdm_url}" title="Voir la feuille de match">
+                    <button class="fdm-button" data-fdm-url="${safeFdmUrl}" title="Voir la feuille de match">
                         <i class="ri-file-text-line"></i>
                     </button>
                     ` : ''}
@@ -2491,6 +3383,7 @@ function displayVenueDetails(venue, teams, venueName, venueAddress = null) {
     const venueIdentifier = venueAddress && venueAddress !== 'null' && venueAddress !== '' ? 
         venueName + '_' + venueAddress : venueName;
     const isFav = isItemFavorite('venue', venueIdentifier);
+    const safeVenueName = venueName.replace(/'/g, "\\'");
 
     let html = `
         <div class="card">
@@ -2500,7 +3393,7 @@ function displayVenueDetails(venue, teams, venueName, venueAddress = null) {
                 </div>
                 <div class="card-title">${venueName}</div>
                 <button class="favorite-btn ${isFav ? 'active' : ''}" 
-                        onclick="toggleFavorite('venue', '${venueIdentifier}', '${venueName}', 'venue')">
+                        onclick="toggleFavorite('venue', '${venueIdentifier}', '${safeVenueName}', 'venue')">
                     <i class="ri-star-${isFav ? 'fill' : 'line'}"></i>
                 </button>
             </div>
@@ -2558,10 +3451,11 @@ function displayVenueDetails(venue, teams, venueName, venueAddress = null) {
     }
 
     if (teams.length > 0) {
+        const safeTeamName = teams[0].replace(/'/g, "\\'");
         html += `
                 <div style="margin-top: 16px;"><strong>Club résident:</strong></div>
                 <div class="filters-container" style="margin-top: 8px;">
-                    <div class="filter-chip" onclick="searchTeamMatches('${teams[0]}')">
+                    <div class="filter-chip" onclick="searchTeamMatches('${safeTeamName}')">
                         ${teams[0]}
                     </div>
                 </div>
@@ -2699,6 +3593,7 @@ function loadFavoritesPreview() {
 
     container.innerHTML = favorites.map(fav => {
         const icon = getFavoriteIcon(fav.category);
+        const safeName = fav.name.replace(/'/g, "\\'");
         
         return `
         <div class="card">
@@ -2708,7 +3603,7 @@ function loadFavoritesPreview() {
                 </div>
                 <div class="card-title">${fav.name}</div>
                 <button class="favorite-btn active" 
-                        onclick="toggleFavorite('${fav.type}', '${fav.id}', '${fav.name}', '${fav.category}')">
+                        onclick="toggleFavorite('${fav.type}', '${fav.id}', '${safeName}', '${fav.category}')">
                     <i class="ri-star-fill"></i>
                 </button>
             </div>

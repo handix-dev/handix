@@ -353,11 +353,6 @@ main {
     overflow: hidden; /* cache ce qui dépasse */
 }
 
-.match-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
-}
-
 .match-header {
     display: flex;
     justify-content: space-between;
@@ -1740,4 +1735,65 @@ main {
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* À ajouter à la fin de style.css */
+
+/* Styles spécifiques pour les matchs dans clubs.html */
+#club-matches-section .data-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+#club-matches-section .match-card {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin-left: 0;
+    margin-right: 0;
+    margin-bottom: 16px;
+}
+
+/* Assurer que le conteneur principal des clubs a la même largeur */
+#club-detail-view {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    box-sizing: border-box;
+}
+
+/* Correction pour le titre des matchs dans clubs.html */
+#club-matches-section .section-header {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    margin: 0 0 16px 0;
+}
+
+/* S'assurer que les tabs sont correctement alignés */
+#club-matches-section .tabs-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 16px 0;
+    box-sizing: border-box;
+}
+
+/* À ajouter à style.css pour améliorer le sélecteur de niveau */
+#club-matches-results select,
+#club-matches-results .club-level-filter {
+    background: var(--bg-primary) !important;
+    color: var(--text-secondary) !important;
+    border: 1px solid var(--text-primary) !important;
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    cursor: pointer !important;
+    outline: none !important;
+    transition: var(--transition) !important;
+    text-align: center;
 }
