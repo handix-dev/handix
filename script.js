@@ -187,6 +187,63 @@ function switchClubMatchesTab(tabType) {
     }
 }
 
+// FONCTIONS POUR LA PAGE SALLES
+function initSallesEventListeners() {
+    console.log('🎯 Initialisation des écouteurs salles...');
+
+    const venueSearchBtn = document.getElementById('venue-search-button');
+    const venueSearchInput = document.getElementById('venue-search');
+
+    console.log('🔍 Éléments trouvés:', {
+        venueSearchBtn: !!venueSearchBtn,
+        venueSearchInput: !!venueSearchInput
+    });
+
+    if (venueSearchBtn && venueSearchInput) {
+        venueSearchBtn.onclick = () => {
+            const term = venueSearchInput.value.trim();
+            console.log('🖱️ Bouton cliqué - Recherche:', term);
+            if (term) {
+                searchVenues(term);
+            } else {
+                showNotification('Veuillez entrer un terme de recherche');
+            }
+        };
+
+        venueSearchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                const term = venueSearchInput.value.trim();
+                console.log('⌨️ Enter pressé - Recherche:', term);
+                if (term) {
+                    searchVenues(term);
+                } else {
+                    showNotification('Veuillez entrer un terme de recherche');
+                }
+            }
+        });
+
+        console.log('✅ Écouteurs salles attachés avec succès');
+    } else {
+        console.error('❌ Éléments de recherche non trouvés');
+        showNotification('Erreur: éléments de recherche non chargés');
+    }
+
+    const refreshVenues = document.getElementById('refresh-venues');
+    if (refreshVenues) {
+        refreshVenues.onclick = () => {
+            console.log('🔄 Actualisation salles');
+            loadVenuesNearby();
+        };
+    }
+
+    const backToVenues = document.getElementById('back-to-venues');
+    if (backToVenues) {
+        backToVenues.onclick = () => {
+            showVenuesList();
+        };
+    }
+}
+
 // FONCTIONS POUR LA NORMALISATION ET REGROUPEMENT DES CLUBS - CORRIGÉES
 function normalizeClubName(teamName) {
     if (!teamName) return '';
@@ -4040,4 +4097,5 @@ function initFdmEvents() {
 }
 
 // Vérifier les nouveaux matchs toutes les heures
+
 setInterval(checkForNewMatches, 60 * 60 * 1000);
