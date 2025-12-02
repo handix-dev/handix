@@ -677,6 +677,7 @@ main {
 #map {
     height: 100%;
     width: 100%;
+    z-index: 20;
 }
 
 /* Notifications avec bordure violette */
@@ -1796,4 +1797,5 @@ main {
     outline: none !important;
     transition: var(--transition) !important;
     text-align: center;
+
 }
