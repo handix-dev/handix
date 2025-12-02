@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handix - Template matchs du week-end</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .search-box {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        #club-search {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 15px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .day-container {
+            margin-bottom: 30px;
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 5px;
+            background: white;
+        }
+        .day-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .match {
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+        }
+        .match-info {
+            display: flex;
+            justify-content: space-between;
+        }
+        .export-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        #export-saturday, #export-sunday, #export-all {
+            margin: 0 5px;
+            background: #2196F3;
+        }
+        #export-saturday:hover, #export-sunday:hover, #export-all:hover {
+            background: #0b7dda;
+        }
+        .instagram-post {
+            width: 1080px;
+            height: 1080px;
+            background: white;
+            padding: 20px;
+            box-sizing: border-box;
+            display: none;
+            position: relative;
+        }
+        .instagram-header {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .instagram-day {
+            margin-bottom: 30px;
+        }
+        .instagram-day-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #4CAF50;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 5px;
+        }
+        .instagram-match {
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            border-left: 4px solid #4CAF50;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Générateur de template matchs du week-end</h1>
+
+        <div class="search-box">
+            <input type="text" id="club-search" placeholder="Rechercher un club...">
+            <button id="search-btn">Rechercher</button>
+        </div>
+
+        <div id="matches-results">
+            <!-- Résultats affichés ici -->
+        </div>
+
+        <div class="export-container">
+            <button id="export-saturday">Exporter Samedi (PNG)</button>
+            <button id="export-sunday">Exporter Dimanche (PNG)</button>
+            <button id="export-all">Exporter Tout (PNG)</button>
+        </div>
+    </div>
+
+    <!-- Modèles pour l'export Instagram (cachés) -->
+    <div id="instagram-saturday" class="instagram-post">
+        <div class="instagram-header">Matchs du week-end - <span id="club-name-sat"></span></div>
+        <div class="instagram-day">
+            <div class="instagram-day-title">Samedi</div>
+            <div id="matches-saturday"></div>
+        </div>
+    </div>
+
+    <div id="instagram-sunday" class="instagram-post">
+        <div class="instagram-header">Matchs du week-end - <span id="club-name-sun"></span></div>
+        <div class="instagram-day">
+            <div class="instagram-day-title">Dimanche</div>
+            <div id="matches-sunday"></div>
+        </div>
+    </div>
+
+    <div id="instagram-all" class="instagram-post">
+        <div class="instagram-header">Matchs du week-end - <span id="club-name-all"></span></div>
+        <div class="instagram-day">
+            <div class="instagram-day-title">Samedi</div>
+            <div id="matches-saturday-all"></div>
+        </div>
+        <div class="instagram-day">
+            <div class="instagram-day-title">Dimanche</div>
+            <div id="matches-sunday-all"></div>
+        </div>
+    </div>
+
+    <script>
+        // Données simulées - à remplacer par tes vraies données
+        const clubs = [
+            { id: 1, name: "Club A" },
+            { id: 2, name: "Club B" },
+            { id: 3, name: "Club C" }
+        ];
+
+        const matches = [
+            { id: 1, club: "Club A", day: "saturday", time: "14:00", opponent: "Club X", location: "Salle 1" },
+            { id: 2, club: "Club A", day: "saturday", time: "16:00", opponent: "Club Y", location: "Salle 2" },
+            { id: 3, club: "Club A", day: "sunday", time: "10:00", opponent: "Club Z", location: "Salle 3" },
+            { id: 4, club: "Club B", day: "saturday", time: "15:00", opponent: "Club W", location: "Salle 4" },
+            { id: 5, club: "Club B", day: "sunday", time: "11:00", opponent: "Club V", location: "Salle 5" },
+        ];
+
+        // Fonction pour afficher les matchs d'un club
+        function displayMatches(clubName) {
+            const saturdayMatches = matches.filter(m => m.club === clubName && m.day === "saturday");
+            const sundayMatches = matches.filter(m => m.club === clubName && m.day === "sunday");
+
+            let html = `
+                <div class="day-container">
+                    <div class="day-title">Samedi</div>
+                    ${saturdayMatches.length > 0 ?
+                        saturdayMatches.map(match => `
+                            <div class="match">
+                                <div class="match-info">
+                                    <span>${match.time} - ${match.opponent}</span>
+                                    <span>${match.location}</span>
+                                </div>
+                            </div>
+                        `).join('') :
+                        "<p>Aucun match ce samedi.</p>"
+                    }
+                </div>
+                <div class="day-container">
+                    <div class="day-title">Dimanche</div>
+                    ${sundayMatches.length > 0 ?
+                        sundayMatches.map(match => `
+                            <div class="match">
+                                <div class="match-info">
+                                    <span>${match.time} - ${match.opponent}</span>
+                                    <span>${match.location}</span>
+                                </div>
+                            </div>
+                        `).join('') :
+                        "<p>Aucun match ce dimanche.</p>"
+                    }
+                </div>
+            `;
+
+            document.getElementById('matches-results').innerHTML = html;
+
+            // Pré-remplir les templates Instagram
+            document.getElementById('club-name-sat').textContent = clubName;
+            document.getElementById('club-name-sun').textContent = clubName;
+            document.getElementById('club-name-all').textContent = clubName;
+
+            document.getElementById('matches-saturday').innerHTML =
+                saturdayMatches.length > 0 ?
+                    saturdayMatches.map(match => `
+                        <div class="instagram-match">
+                            ${match.time} - ${match.opponent} (${match.location})
+                        </div>
+                    `).join('') :
+                    "<div class='instagram-match'>Aucun match ce samedi.</div>";
+
+            document.getElementById('matches-sunday').innerHTML =
+                sundayMatches.length > 0 ?
+                    sundayMatches.map(match => `
+                        <div class="instagram-match">
+                            ${match.time} - ${match.opponent} (${match.location})
+                        </div>
+                    `).join('') :
+                    "<div class='instagram-match'>Aucun match ce dimanche.</div>";
+
+            document.getElementById('matches-saturday-all').innerHTML = document.getElementById('matches-saturday').innerHTML;
+            document.getElementById('matches-sunday-all').innerHTML = document.getElementById('matches-sunday').innerHTML;
+        }
+
+        // Recherche de club
+        document.getElementById('search-btn').addEventListener('click', () => {
+            const clubName = document.getElementById('club-search').value;
+            if (clubName) {
+                displayMatches(clubName);
+            }
+        });
+
+        // Export Samedi
+        document.getElementById('export-saturday').addEventListener('click', () => {
+            const element = document.getElementById('instagram-saturday');
+            html2canvas(element, {
+                scale: 1,
+                logging: false,
+                useCORS: true,
+                allowTaint: true
+            }).then(canvas => {
+                let link = document.createElement('a');
+                link.download = 'matchs-samedi.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        });
+
+        // Export Dimanche
+        document.getElementById('export-sunday').addEventListener('click', () => {
+            const element = document.getElementById('instagram-sunday');
+            html2canvas(element, {
+                scale: 1,
+                logging: false,
+                useCORS: true,
+                allowTaint: true
+            }).then(canvas => {
+                let link = document.createElement('a');
+                link.download = 'matchs-dimanche.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        });
+
+        // Export Tout
+        document.getElementById('export-all').addEventListener('click', () => {
+            const element = document.getElementById('instagram-all');
+            html2canvas(element, {
+                scale: 1,
+                logging: false,
+                useCORS: true,
+                allowTaint: true
+            }).then(canvas => {
+                let link = document.createElement('a');
+                link.download = 'matchs-weekend.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        });
+    </script>
+</body>
+</html>
