@@ -3866,8 +3866,8 @@ function showNotification(message) {
         top: 100px;
         left: 50%;
         transform: translateX(-50%);
-        background: var(--gradient-primary);
-        color: white;
+        background: var(--bg-primary);
+        color: var(--text-secondary);
         padding: 12px 20px;
         border-radius: 12px;
         box-shadow: var(--shadow-lg);
@@ -4099,4 +4099,5 @@ function initFdmEvents() {
 // Vérifier les nouveaux matchs toutes les heures
 
 setInterval(checkForNewMatches, 60 * 60 * 1000);
+
 
