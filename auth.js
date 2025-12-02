@@ -1,4 +1,4 @@
-/* ============================================================================
+/* ===========================================================================
 CONFIG SUPABASE
 ============================================================================= */
 const SUPABASE_URL = '[https://hjrjcfloqdhbkpjpsdhn.supabase.co](https://hjrjcfloqdhbkpjpsdhn.supabase.co)';
@@ -235,4 +235,5 @@ showAuthMessage("Nom mis à jour ✔️", "success");
 ```
 
 }
+
 
