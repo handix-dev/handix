@@ -2903,7 +2903,7 @@ async function searchVenues(searchTerm) {
             .not('latitude', 'is', null)
             .order('city')
             .order('venue_name')
-            .limit(100);
+            .limit(500);
 
         if (error) {
             console.error('❌ Erreur Supabase:', error);
@@ -4099,3 +4099,4 @@ function initFdmEvents() {
 // Vérifier les nouveaux matchs toutes les heures
 
 setInterval(checkForNewMatches, 60 * 60 * 1000);
+
