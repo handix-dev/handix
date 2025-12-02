@@ -393,28 +393,23 @@
     <header>
         <div class="logo">Handix</div>
     </header>
-
     <main>
         <div class="search-container">
             <input type="text" id="club-search" class="search-input" placeholder="Rechercher un club...">
             <button id="search-btn" class="search-button">🔍</button>
         </div>
-
         <div class="section-header">
             <h2 class="section-title">Matchs du week-end</h2>
         </div>
-
         <div id="matches-results">
             <!-- Résultats affichés ici -->
         </div>
-
         <div class="export-container">
             <button id="export-saturday" class="export-button">Samedi (PNG)</button>
             <button id="export-sunday" class="export-button">Dimanche (PNG)</button>
             <button id="export-all" class="export-button">Tout (PNG)</button>
         </div>
     </main>
-
     <!-- Modèles pour l'export Instagram (cachés) -->
     <div id="instagram-saturday" class="instagram-post">
         <div class="instagram-header">Matchs du week-end - <span id="club-name-sat"></span></div>
@@ -423,7 +418,6 @@
             <div id="matches-saturday"></div>
         </div>
     </div>
-
     <div id="instagram-sunday" class="instagram-post">
         <div class="instagram-header">Matchs du week-end - <span id="club-name-sun"></span></div>
         <div class="instagram-day">
@@ -431,7 +425,6 @@
             <div id="matches-sunday"></div>
         </div>
     </div>
-
     <div id="instagram-all" class="instagram-post">
         <div class="instagram-header">Matchs du week-end - <span id="club-name-all"></span></div>
         <div class="instagram-day">
@@ -443,7 +436,6 @@
             <div id="matches-sunday-all"></div>
         </div>
     </div>
-
     <div class="bottom-nav">
         <div class="nav-item active">
             <div class="nav-icon">🏠</div>
@@ -462,8 +454,34 @@
             <div class="nav-label">Salles</div>
         </div>
     </div>
-
     <script>
+        // Fonction pour précharger une image
+        function preloadImage(url) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.crossOrigin = "Anonymous";
+                img.src = url;
+                img.onload = () => resolve(img);
+                img.onerror = () => {
+                    // En cas d'erreur, on utilise un placeholder
+                    const placeholder = new Image();
+                    placeholder.src = `https://via.placeholder.com/50?text=${encodeURIComponent(url.charAt(0))}`;
+                    resolve(placeholder);
+                };
+            });
+        }
+
+        // Fonction pour précharger toutes les images d'un template
+        async function preloadAllImages(element) {
+            const images = element.querySelectorAll('img');
+            const promises = Array.from(images).map(img => {
+                return preloadImage(img.src).then(newImg => {
+                    img.src = newImg.src;
+                });
+            });
+            await Promise.all(promises);
+        }
+
         // Données simulées - à remplacer par tes vraies données
         const clubs = [
             { id: 1, name: "Club A", logo: "https://media-logos-clubs.ffhandball.fr/128/2015-04-24-d43158cf-b6ef-470f-ad52-9e695555ce04.webp" },
@@ -498,12 +516,12 @@
                             </div>
                             <div class="teams-container">
                                 <div class="team">
-                                    <div class="team-logo"><img src="${match.clubLogo}" alt="${clubName}"></div>
+                                    <div class="team-logo"><img src="${match.clubLogo}" alt="${clubName}" onerror="this.src='https://via.placeholder.com/64?text=${encodeURIComponent(clubName.charAt(0))}';"></div>
                                     <div class="team-name">${clubName}</div>
                                 </div>
                                 <div class="vs">VS</div>
                                 <div class="team">
-                                    <div class="team-logo"><img src="${match.opponentLogo}" alt="${match.opponent}"></div>
+                                    <div class="team-logo"><img src="${match.opponentLogo}" alt="${match.opponent}" onerror="this.src='https://via.placeholder.com/64?text=${encodeURIComponent(match.opponent.charAt(0))}';"></div>
                                     <div class="team-name">${match.opponent}</div>
                                 </div>
                             </div>
@@ -526,12 +544,12 @@
                             </div>
                             <div class="teams-container">
                                 <div class="team">
-                                    <div class="team-logo"><img src="${match.clubLogo}" alt="${clubName}"></div>
+                                    <div class="team-logo"><img src="${match.clubLogo}" alt="${clubName}" onerror="this.src='https://via.placeholder.com/64?text=${encodeURIComponent(clubName.charAt(0))}';"></div>
                                     <div class="team-name">${clubName}</div>
                                 </div>
                                 <div class="vs">VS</div>
                                 <div class="team">
-                                    <div class="team-logo"><img src="${match.opponentLogo}" alt="${match.opponent}"></div>
+                                    <div class="team-logo"><img src="${match.opponentLogo}" alt="${match.opponent}" onerror="this.src='https://via.placeholder.com/64?text=${encodeURIComponent(match.opponent.charAt(0))}';"></div>
                                     <div class="team-name">${match.opponent}</div>
                                 </div>
                             </div>
@@ -555,13 +573,13 @@
                 saturdayMatches.length > 0 ?
                     saturdayMatches.map(match => `
                         <div class="instagram-match">
-                            <div class="instagram-team-logo"><img src="${match.clubLogo}" alt="${clubName}"></div>
+                            <div class="instagram-team-logo"><img src="${match.clubLogo}" alt="${clubName}" onerror="this.src='https://via.placeholder.com/50?text=${encodeURIComponent(clubName.charAt(0))}';"></div>
                             <div class="instagram-match-info">
                                 <div class="instagram-match-time">${match.time}</div>
                                 <div class="instagram-match-opponent">${match.opponent}</div>
                                 <div class="instagram-match-location">${match.location}</div>
                             </div>
-                            <div class="instagram-team-logo"><img src="${match.opponentLogo}" alt="${match.opponent}"></div>
+                            <div class="instagram-team-logo"><img src="${match.opponentLogo}" alt="${match.opponent}" onerror="this.src='https://via.placeholder.com/50?text=${encodeURIComponent(match.opponent.charAt(0))}';"></div>
                         </div>
                     `).join('') :
                     "<div class='instagram-match'><div style='text-align:center;color:var(--text-muted);'>Aucun match ce samedi.</div></div>";
@@ -570,13 +588,13 @@
                 sundayMatches.length > 0 ?
                     sundayMatches.map(match => `
                         <div class="instagram-match">
-                            <div class="instagram-team-logo"><img src="${match.clubLogo}" alt="${clubName}"></div>
+                            <div class="instagram-team-logo"><img src="${match.clubLogo}" alt="${clubName}" onerror="this.src='https://via.placeholder.com/50?text=${encodeURIComponent(clubName.charAt(0))}';"></div>
                             <div class="instagram-match-info">
                                 <div class="instagram-match-time">${match.time}</div>
                                 <div class="instagram-match-opponent">${match.opponent}</div>
                                 <div class="instagram-match-location">${match.location}</div>
                             </div>
-                            <div class="instagram-team-logo"><img src="${match.opponentLogo}" alt="${match.opponent}"></div>
+                            <div class="instagram-team-logo"><img src="${match.opponentLogo}" alt="${match.opponent}" onerror="this.src='https://via.placeholder.com/50?text=${encodeURIComponent(match.opponent.charAt(0))}';"></div>
                         </div>
                     `).join('') :
                     "<div class='instagram-match'><div style='text-align:center;color:var(--text-muted);'>Aucun match ce dimanche.</div></div>";
@@ -593,55 +611,75 @@
             }
         });
 
-        // Export Samedi
-        document.getElementById('export-saturday').addEventListener('click', () => {
+        // Export Samedi (avec préchargement)
+        document.getElementById('export-saturday').addEventListener('click', async () => {
             const element = document.getElementById('instagram-saturday');
-            html2canvas(element, {
-                scale: 1,
-                logging: false,
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: '#ffffff'
-            }).then(canvas => {
-                let link = document.createElement('a');
+            try {
+                await preloadAllImages(element);
+                const canvas = await html2canvas(element, {
+                    scale: 1,
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff'
+                });
+                const link = document.createElement('a');
                 link.download = 'matchs-samedi.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
-            });
+            } catch (e) {
+                console.error("Erreur lors de la génération du PNG :", e);
+                alert("Erreur lors de la génération du PNG. Voir la console pour plus de détails.");
+            }
         });
 
-        // Export Dimanche
-        document.getElementById('export-sunday').addEventListener('click', () => {
+        // Export Dimanche (avec préchargement)
+        document.getElementById('export-sunday').addEventListener('click', async () => {
             const element = document.getElementById('instagram-sunday');
-            html2canvas(element, {
-                scale: 1,
-                logging: false,
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: '#ffffff'
-            }).then(canvas => {
-                let link = document.createElement('a');
+            try {
+                await preloadAllImages(element);
+                const canvas = await html2canvas(element, {
+                    scale: 1,
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff'
+                });
+                const link = document.createElement('a');
                 link.download = 'matchs-dimanche.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
-            });
+            } catch (e) {
+                console.error("Erreur lors de la génération du PNG :", e);
+                alert("Erreur lors de la génération du PNG. Voir la console pour plus de détails.");
+            }
         });
 
-        // Export Tout
-        document.getElementById('export-all').addEventListener('click', () => {
+        // Export Tout (avec préchargement)
+        document.getElementById('export-all').addEventListener('click', async () => {
             const element = document.getElementById('instagram-all');
-            html2canvas(element, {
-                scale: 1,
-                logging: false,
-                useCORS: true,
-                allowTaint: true,
-                backgroundColor: '#ffffff'
-            }).then(canvas => {
-                let link = document.createElement('a');
+            try {
+                await preloadAllImages(element);
+                const canvas = await html2canvas(element, {
+                    scale: 1,
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff'
+                });
+                const link = document.createElement('a');
                 link.download = 'matchs-weekend.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
-            });
+            } catch (e) {
+                console.error("Erreur lors de la génération du PNG :", e);
+                alert("Erreur lors de la génération du PNG. Voir la console pour plus de détails.");
+            }
+        });
+
+        // Afficher les matchs du Club A par défaut au chargement
+        window.addEventListener('DOMContentLoaded', () => {
+            displayMatches("Club A");
         });
     </script>
 </body>
