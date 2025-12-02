@@ -2,9 +2,8 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Handix - Template matchs du week-end</title>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Handix - Matchs du week-end</title>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
         :root {
@@ -33,7 +32,7 @@
             --gradient-secondary: #050f44;
             --gradient-card: #050f44;
             --gradient-bg: #faf7ff;
-            --font-body: 'Roboto', sans-serif;
+            --font-body: Arial, sans-serif;
         }
         * {
             margin: 0;
@@ -191,12 +190,20 @@
             margin-bottom: 8px;
             overflow: hidden;
             flex-shrink: 0;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+            background: #1a2b5b;
         }
         .team-logo img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             border-radius: 14px;
+            display: none; /* Masqué par défaut, affiché si l'image charge */
+        }
+        .team-logo.has-image img {
+            display: block;
         }
         .team-name {
             font-size: 14px;
@@ -276,6 +283,7 @@
             border-radius: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             margin: 0 auto;
+            font-family: var(--font-body);
         }
         .instagram-header {
             text-align: center;
@@ -462,7 +470,6 @@
             { id: 2, name: "Club B" },
             { id: 3, name: "Club C" }
         ];
-
         const matches = [
             { id: 1, club: "Club A", day: "saturday", time: "14:00", opponent: "Club X", location: "Salle 1", level: "N1" },
             { id: 2, club: "Club A", day: "saturday", time: "16:00", opponent: "Club Y", location: "Salle 2", level: "N2" },
@@ -489,15 +496,15 @@
                             </div>
                             <div class="teams-container">
                                 <div class="team">
-                                    <div class="team-logo">
-                                        <img src="handix-logo.png" alt="${clubName}" onerror="this.style.display='none'; this.parentElement.style.background='#1a2b5b'; this.parentElement.textContent='${clubName.charAt(0)}';">
+                                    <div class="team-logo" data-initial="${clubName.charAt(0)}">
+                                        <img src="handix-logo.png" alt="${clubName}" onload="this.parentElement.classList.add('has-image')" onerror="this.style.display='none'">
                                     </div>
                                     <div class="team-name">${clubName}</div>
                                 </div>
                                 <div class="vs">VS</div>
                                 <div class="team">
-                                    <div class="team-logo">
-                                        <img src="handix-logo.png" alt="${match.opponent}" onerror="this.style.display='none'; this.parentElement.style.background='#1a2b5b'; this.parentElement.textContent='${match.opponent.charAt(0)}';">
+                                    <div class="team-logo" data-initial="${match.opponent.charAt(0)}">
+                                        <img src="handix-logo.png" alt="${match.opponent}" onload="this.parentElement.classList.add('has-image')" onerror="this.style.display='none'">
                                     </div>
                                     <div class="team-name">${match.opponent}</div>
                                 </div>
@@ -521,15 +528,15 @@
                             </div>
                             <div class="teams-container">
                                 <div class="team">
-                                    <div class="team-logo">
-                                        <img src="handix-logo.png" alt="${clubName}" onerror="this.style.display='none'; this.parentElement.style.background='#1a2b5b'; this.parentElement.textContent='${clubName.charAt(0)}';">
+                                    <div class="team-logo" data-initial="${clubName.charAt(0)}">
+                                        <img src="handix-logo.png" alt="${clubName}" onload="this.parentElement.classList.add('has-image')" onerror="this.style.display='none'">
                                     </div>
                                     <div class="team-name">${clubName}</div>
                                 </div>
                                 <div class="vs">VS</div>
                                 <div class="team">
-                                    <div class="team-logo">
-                                        <img src="handix-logo.png" alt="${match.opponent}" onerror="this.style.display='none'; this.parentElement.style.background='#1a2b5b'; this.parentElement.textContent='${match.opponent.charAt(0)}';">
+                                    <div class="team-logo" data-initial="${match.opponent.charAt(0)}">
+                                        <img src="handix-logo.png" alt="${match.opponent}" onload="this.parentElement.classList.add('has-image')" onerror="this.style.display='none'">
                                     </div>
                                     <div class="team-name">${match.opponent}</div>
                                 </div>
@@ -542,7 +549,6 @@
                     "<p style='text-align:center;color:var(--text-muted);'>Aucun match ce dimanche.</p>"
                 }
             `;
-
             document.getElementById('matches-results').innerHTML = html;
 
             // Pré-remplir les templates Instagram
@@ -596,11 +602,12 @@
         document.getElementById('export-saturday').addEventListener('click', () => {
             const element = document.getElementById('instagram-saturday');
             html2canvas(element, {
-                scale: 1,
+                scale: 2,
                 logging: false,
                 useCORS: true,
                 allowTaint: true,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                letterRendering: true
             }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = 'matchs-samedi.png';
@@ -616,11 +623,12 @@
         document.getElementById('export-sunday').addEventListener('click', () => {
             const element = document.getElementById('instagram-sunday');
             html2canvas(element, {
-                scale: 1,
+                scale: 2,
                 logging: false,
                 useCORS: true,
                 allowTaint: true,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                letterRendering: true
             }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = 'matchs-dimanche.png';
@@ -636,11 +644,12 @@
         document.getElementById('export-all').addEventListener('click', () => {
             const element = document.getElementById('instagram-all');
             html2canvas(element, {
-                scale: 1,
+                scale: 2,
                 logging: false,
                 useCORS: true,
                 allowTaint: true,
-                backgroundColor: '#ffffff'
+                backgroundColor: '#ffffff',
+                letterRendering: true
             }).then(canvas => {
                 const link = document.createElement('a');
                 link.download = 'matchs-weekend.png';
