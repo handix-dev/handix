@@ -2598,7 +2598,7 @@
         function displayMatches(matches, containerId, title = 'Matchs') {
             const container = document.getElementById(containerId);
             if (!container) return;
-            
+        
             if (!matches || matches.length === 0) {
                 container.innerHTML = `
                     <div class="no-results">
@@ -2614,76 +2614,33 @@
                 return;
             }
         
+            // ID unique pour le conteneur des matchs
+            const matchesListId = `matches-list-${Date.now()}`;
+        
             container.innerHTML = `
-                <div style="margin-bottom: 16px; color: var(--text-muted); font-size: 16px; font-weight: 600;">
+                <div style="margin-bottom: 16px; color: var(--text-muted); font-size: 16px; font-weight: 600; width: 100%;">
                     ${title} (${matches.length})
                 </div>
-                ${matches.map(match => {
-                    const matchDate = new Date(match.date);
-                    const formattedDate = matchDate.toLocaleDateString('fr-FR', {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long'
-                    });
-                    
-                    // Formater l'adresse avec code postal et ville
-                    const venueInfo = formatVenueInfo(match);
-                    
-                    // Formater l'heure pour enlever les secondes
-                    const formattedTime = formatTime(match.time);
-                    
-                    return `
-                    <div class="match-card">
-                        <div class="match-header">
-                            <div class="match-date">${formattedDate}</div>
-                            <div class="match-level">${match.level || 'Niveau inconnu'}</div>
-                        </div>
-                        <div class="teams-container">
-                            <div class="team">
-                                <div class="team-logo">
-                                    ${match.home_logo ? 
-                                        `<img src="${match.home_logo}" alt="${match.home_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
-                                        ''
-                                    }
-                                    <div class="logo-fallback" style="${match.home_logo ? 'display: none;' : 'display: flex;'}">🏠</div>
-                                </div>
-                                <div class="team-name">${match.home_team}</div>
-                                <!-- Ajout d'un conteneur de score vide pour maintenir l'alignement -->
-                                <div class="score-container" style="visibility: hidden;">
-                                    <div class="match-score">-</div>
-                                </div>
-                            </div>
-                            <div class="vs">VS</div>
-                            <div class="team">
-                                <div class="team-logo">
-                                    ${match.away_logo ? 
-                                        `<img src="${match.away_logo}" alt="${match.away_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
-                                        ''
-                                    }
-                                    <div class="logo-fallback" style="${match.away_logo ? 'display: none;' : 'display: flex;'}">✈️</div>
-                                </div>
-                                <div class="team-name">${match.away_team}</div>
-                                <!-- Ajout d'un conteneur de score vide pour maintenir l'alignement -->
-                                <div class="score-container" style="visibility: hidden;">
-                                    <div class="match-score">-</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="match-footer">
-                            <div class="match-venue">
-                                ${formattedTime || 'Heure non précisée'} - ${venueInfo}
-                            </div>
-                        </div>
-                    </div>
-                    `;
-                }).join('')}
+                <div id="${matchesListId}" style="width: 100%;">
+                    ${renderMatchesList(matches)}
+                </div>
+                <button id="capture-matches-btn"
+                        style="margin-top: 16px; padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer;">
+                    <i class="ri-camera-line"></i> Capturer
+                </button>
             `;
+        
+            // Ajouter l'écouteur pour le bouton "Capture"
+            document.getElementById('capture-matches-btn').addEventListener('click', () => {
+                captureMatchesAsImage(matchesListId, title);
+            });
         }
+
         
         function displayMatchResults(matches, containerId, title = 'Résultats') {
             const container = document.getElementById(containerId);
             if (!container) return;
-            
+        
             if (!matches || matches.length === 0) {
                 container.innerHTML = `
                     <div class="no-results">
@@ -2699,84 +2656,57 @@
                 return;
             }
         
+            // ID unique pour le conteneur des matchs
+            const matchesListId = `matches-list-${Date.now()}`;
+        
             container.innerHTML = `
-                <div style="margin-bottom: 16px; color: var(--text-muted); font-size: 16px; font-weight: 600;">
+                <div style="margin-bottom: 16px; color: var(--text-muted); font-size: 16px; font-weight: 600; width: 100%;">
                     ${title} (${matches.length})
                 </div>
-                ${matches.map(match => {
-                    const matchDate = new Date(match.date);
-                    const formattedDate = matchDate.toLocaleDateString('fr-FR', {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long'
-                    });
-                    
-                    // Déterminer le gagnant pour un style sobre
-                    const homeScore = parseInt(match.score_home) || 0;
-                    const awayScore = parseInt(match.score_away) || 0;
-                    const homeWon = homeScore > awayScore;
-                    const awayWon = awayScore > homeScore;
-                    
-                    // Formater l'adresse avec code postal et ville
-                    const venueInfo = formatVenueInfo(match);
-                    
-                    // Formater l'heure pour enlever les secondes
-                    const formattedTime = formatTime(match.time);
-                    
-                    // Vérifier si une feuille de match est disponible
-                    const hasFdm = match.fdm_url && match.fdm_url !== '';
-                    
-                    // CORRECTION : Échapper correctement l'URL
-                    const fdmUrl = hasFdm ? match.fdm_url.replace(/'/g, "\\'") : '';
-                    
-                    return `
-                    <div class="match-card">
-                        <div class="match-header">
-                            <div class="match-date">${formattedDate}</div>
-                            <div class="match-level">${match.level || 'Niveau inconnu'}</div>
-                        </div>
-                        <div class="teams-container">
-                            <div class="team ${homeWon ? 'winner' : ''}">
-                                <div class="team-logo">
-                                    ${match.home_logo ? 
-                                        `<img src="${match.home_logo}" alt="${match.home_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
-                                        ''
-                                    }
-                                    <div class="logo-fallback" style="${match.home_logo ? 'display: none;' : 'display: flex;'}">🏠</div>
-                                </div>
-                                <div class="team-name">${match.home_team}</div>
-                                <div class="score-container ${homeWon ? 'winner-score' : ''}">
-                                    <div class="match-score">${match.score_home || '-'}</div>
-                                </div>
-                            </div>
-                            <div class="vs">VS</div>
-                            <div class="team ${awayWon ? 'winner' : ''}">
-                                <div class="team-logo">
-                                    ${match.away_logo ? 
-                                        `<img src="${match.away_logo}" alt="${match.away_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
-                                        ''
-                                    }
-                                    <div class="logo-fallback" style="${match.away_logo ? 'display: none;' : 'display: flex;'}">✈️</div>
-                                </div>
-                                <div class="team-name">${match.away_team}</div>
-                                <div class="score-container ${awayWon ? 'winner-score' : ''}">
-                                    <div class="match-score">${match.score_away || '-'}</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="match-footer">
-                            <div class="match-venue">${formattedTime} - ${venueInfo}</div>
-                            ${hasFdm ? `
-                            <button class="fdm-button" onclick="openFdmModal('${fdmUrl}')" title="Voir la feuille de match">
-                                <i class="ri-file-text-line"></i>
-                            </button>
-                            ` : ''}
-                        </div>
-                    </div>
-                    `;
-                }).join('')}
+                <div id="${matchesListId}" style="width: 100%;">
+                    ${renderMatchResultsList(matches)}
+                </div>
+                <button id="capture-matches-btn"
+                        style="margin-top: 16px; padding: 8px 16px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer;">
+                    <i class="ri-camera-line"></i> Capturer
+                </button>
             `;
+        
+            // Ajouter l'écouteur pour le bouton "Capture"
+            document.getElementById('capture-matches-btn').addEventListener('click', () => {
+                captureMatchesAsImage(matchesListId, title);
+            });
         }
+
+        async function captureMatchesAsImage(containerId, title) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+        
+            try {
+                showLoading(containerId, 'Capture en cours...');
+        
+                // Utiliser html2canvas pour capturer le conteneur
+                const canvas = await html2canvas(container, {
+                    useCORS: true, // Essayer de contourner les restrictions CORS
+                    allowTaint: true, // Autoriser les images "tainted" (si CORS échoue)
+                    logging: false,
+                    scale: 2, // Meilleure qualité
+                    backgroundColor: '#ffffff', // Fond blanc
+                });
+        
+                // Créer un lien pour télécharger l'image
+                const link = document.createElement('a');
+                link.download = `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+        
+                showNotification('Capture terminée !');
+            } catch (error) {
+                console.error('Erreur lors de la capture:', error);
+                showError(containerId, 'Erreur lors de la capture');
+            }
+        }
+
         
         // Fonction pour formater l'heure (enlever les secondes)
         function formatTime(timeString) {
@@ -4289,108 +4219,6 @@
                 }
             });
         }
-
-        // On attend que le DOM soit chargé et que script.js ait fini son initialisation
-        document.addEventListener('DOMContentLoaded', function() {
-            // On attend que initApp soit terminé (si ton script.js déclenche un événement)
-            // Sinon, on ajoute un petit délai pour être sûr
-            setTimeout(function() {
-                const captureButton = document.getElementById('capture-button');
-                const backButton = document.getElementById('back-to-matches');
-
-                // Fonction pour capturer et télécharger la vue détaillée du match (avec images externes)
-                async function captureMatchDetail() {
-                    const node = document.getElementById('match-detail-view');
-                    if (!node || node.style.display === 'none') {
-                        alert("Aucun détail de match à capturer.");
-                        return;
-                    }
-
-                    // On cache le bouton de capture pendant la capture
-                    captureButton.style.display = 'none';
-
-                    try {
-                        // On clone le node pour éviter de modifier l'original
-                        const clone = node.cloneNode(true);
-                        clone.style.position = 'absolute';
-                        clone.style.left = '-9999px';
-                        clone.style.backgroundColor = 'white';
-                        document.body.appendChild(clone);
-
-                        // On attend que les images externes soient chargées
-                        const images = clone.querySelectorAll('img');
-                        const promises = [];
-                        images.forEach(img => {
-                            if (!img.complete && img.src) {
-                                promises.push(new Promise((resolve) => {
-                                    img.onload = resolve;
-                                    img.onerror = resolve;
-                                    img.crossOrigin = 'anonymous';
-                                    if (img.src) {
-                                        img.src = img.src; // Force reload
-                                    }
-                                }));
-                            }
-                        });
-
-                        await Promise.all(promises);
-
-                        // On utilise html2canvas pour capturer le DOM (inclut les images externes)
-                        const canvas = await html2canvas(clone, {
-                            useCORS: true,
-                            allowTaint: true,
-                            logging: false,
-                            scale: 2,
-                            backgroundColor: '#ffffff'
-                        });
-
-                        // On supprime le clone
-                        document.body.removeChild(clone);
-
-                        // On génère le téléchargement
-                        const link = document.createElement('a');
-                        link.download = 'match-detail.png';
-                        link.href = canvas.toDataURL('image/png');
-                        link.click();
-                    } catch (err) {
-                        console.error('Erreur lors de la capture:', err);
-                        alert("Erreur lors de la capture de l'image.");
-                    } finally {
-                        captureButton.style.display = 'block';
-                    }
-                }
-
-                // On montre/cache le bouton de capture selon l'affichage de la vue détaillée
-                function updateCaptureButtonVisibility() {
-                    const detailView = document.getElementById('match-detail-view');
-                    if (detailView && detailView.style.display !== 'none') {
-                        captureButton.style.display = 'block';
-                    } else {
-                        captureButton.style.display = 'none';
-                    }
-                }
-
-                // On écoute le bouton de capture
-                captureButton.addEventListener('click', captureMatchDetail);
-
-                // On écoute le bouton "Retour aux matchs" sans écraser les événements existants
-                const originalBackClick = backButton.onclick;
-                backButton.addEventListener('click', function(e) {
-                    if (originalBackClick) originalBackClick(e);
-                    setTimeout(updateCaptureButtonVisibility, 100);
-                });
-
-                // On observe les changements d'affichage de la vue détaillée
-                const observer = new MutationObserver(updateCaptureButtonVisibility);
-                observer.observe(document.getElementById('match-detail-view'), {
-                    attributes: true,
-                    attributeFilter: ['style']
-                });
-
-                // On initialise la visibilité du bouton
-                updateCaptureButtonVisibility();
-            }, 1000); // Délai pour laisser le temps à script.js de s'initialiser
-        });
         
         // Vérifier les nouveaux matchs toutes les heures
         
