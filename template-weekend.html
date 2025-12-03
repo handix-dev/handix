@@ -12,6 +12,119 @@
     <!-- On charge html2canvas AVANT script.js -->
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <style>
+        /* Style pour les cartes Instagram */
+        .instagram-match-card {
+            width: 100%;
+            padding: 16px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 16px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            aspect-ratio: 1/1; /* Format carré */
+            max-width: 500px; /* Taille optimale pour Instagram */
+            margin: 0 auto 16px;
+            border: 1px solid #f0f0f0;
+        }
+        
+        .instagram-match-header {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding: 0 8px;
+        }
+        
+        .instagram-match-date {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .instagram-match-time {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .instagram-teams-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            padding: 0 16px;
+            margin-bottom: 12px;
+        }
+        
+        .instagram-team {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 40%;
+        }
+        
+        .instagram-team-logo {
+            width: 50px;
+            height: 50px;
+            background: #f5f5f5;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 24px;
+        }
+        
+        .instagram-logo-fallback {
+            font-size: 24px;
+        }
+        
+        .instagram-team-name {
+            font-size: 14px;
+            font-weight: 600;
+            text-align: center;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        
+        .instagram-team-score {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .instagram-winner {
+            font-weight: bold;
+        }
+        
+        .instagram-winner-score {
+            color: #4CAF50; /* Vert pour le gagnant */
+        }
+        
+        .instagram-vs {
+            font-size: 16px;
+            font-weight: bold;
+            color: #666;
+        }
+        
+        .instagram-match-footer {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 16px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .instagram-match-level {
+            font-weight: 600;
+        }
+        
+        .instagram-match-venue {
+            text-align: right;
+        }
+
         .capture-button {
             position: fixed;
             bottom: 80px;
@@ -1769,129 +1882,90 @@
             return matches.map(match => {
                 const matchDate = new Date(match.date);
                 const formattedDate = matchDate.toLocaleDateString('fr-FR', {
-                    weekday: 'long',
                     day: 'numeric',
-                    month: 'long'
+                    month: 'short'
                 });
-                
-                const venueInfo = formatVenueInfo(match);
-                const formattedTime = formatTime(match.time);
-                
+                const formattedTime = match.time ? match.time.substring(0, 5) : 'Heure non précisée';
+                const venueInfo = match.venue_name || 'Lieu non précisé';
+        
                 return `
-                <div class="match-card">
-                    <div class="match-header">
-                        <div class="match-date">${formattedDate}</div>
-                        <div class="match-level">${match.level || 'Niveau inconnu'}</div>
+                <div class="instagram-match-card">
+                    <div class="instagram-match-header">
+                        <div class="instagram-match-date">${formattedDate}</div>
+                        <div class="instagram-match-time">${formattedTime}</div>
                     </div>
-                    <div class="teams-container">
-                        <div class="team">
-                            <div class="team-logo">
-                                ${match.home_logo ? 
-                                    `<img src="${match.home_logo}" alt="${match.home_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
-                                    ''
-                                }
-                                <div class="logo-fallback" style="${match.home_logo ? 'display: none;' : 'display: flex;'}">🏠</div>
+                    <div class="instagram-teams-container">
+                        <div class="instagram-team">
+                            <div class="instagram-team-logo">
+                                <div class="instagram-logo-fallback">🏠</div>
                             </div>
-                            <div class="team-name">${match.home_team}</div>
-                            <!-- Conteneur de score vide pour alignement -->
-                            <div class="score-container" style="visibility: hidden;">
-                                <div class="match-score">-</div>
-                            </div>
+                            <div class="instagram-team-name">${match.home_team}</div>
                         </div>
-                        <div class="vs">VS</div>
-                        <div class="team">
-                            <div class="team-logo">
-                                ${match.away_logo ? 
-                                    `<img src="${match.away_logo}" alt="${match.away_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
-                                    ''
-                                }
-                                <div class="logo-fallback" style="${match.away_logo ? 'display: none;' : 'display: flex;'}">✈️</div>
+                        <div class="instagram-vs">VS</div>
+                        <div class="instagram-team">
+                            <div class="instagram-team-logo">
+                                <div class="instagram-logo-fallback">✈️</div>
                             </div>
-                            <div class="team-name">${match.away_team}</div>
-                            <!-- Conteneur de score vide pour alignement -->
-                            <div class="score-container" style="visibility: hidden;">
-                                <div class="match-score">-</div>
-                            </div>
+                            <div class="instagram-team-name">${match.away_team}</div>
                         </div>
                     </div>
-                    <div class="match-footer">
-                        <div class="match-venue">
-                            ${formattedTime || 'Heure non précisée'} - ${venueInfo}
-                        </div>
+                    <div class="instagram-match-footer">
+                        <div class="instagram-match-level">${match.level || 'Niveau inconnu'}</div>
+                        <div class="instagram-match-venue">${venueInfo}</div>
                     </div>
                 </div>
                 `;
             }).join('');
         }
+
         
         function renderMatchResultsList(matches) {
             return matches.map(match => {
                 const matchDate = new Date(match.date);
                 const formattedDate = matchDate.toLocaleDateString('fr-FR', {
-                    weekday: 'long',
                     day: 'numeric',
-                    month: 'long'
+                    month: 'short'
                 });
-                
+                const formattedTime = match.time ? match.time.substring(0, 5) : 'Heure non précisée';
+                const venueInfo = match.venue_name || 'Lieu non précisé';
+        
                 const homeScore = parseInt(match.score_home) || 0;
                 const awayScore = parseInt(match.score_away) || 0;
                 const homeWon = homeScore > awayScore;
                 const awayWon = awayScore > homeScore;
-                
-                const venueInfo = formatVenueInfo(match);
-                const formattedTime = formatTime(match.time);
-                
-                const hasFdm = match.fdm_url && match.fdm_url !== '';
-                const fdmUrl = hasFdm ? match.fdm_url.replace(/'/g, "\\'") : '';
-                
+        
                 return `
-                <div class="match-card">
-                    <div class="match-header">
-                        <div class="match-date">${formattedDate}</div>
-                        <div class="match-level">${match.level || 'Niveau inconnu'}</div>
+                <div class="instagram-match-card">
+                    <div class="instagram-match-header">
+                        <div class="instagram-match-date">${formattedDate}</div>
+                        <div class="instagram-match-time">${formattedTime}</div>
                     </div>
-                    <div class="teams-container">
-                        <div class="team ${homeWon ? 'winner' : ''}">
-                            <div class="team-logo">
-                                ${match.home_logo ? 
-                                    `<img src="${match.home_logo}" alt="${match.home_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
-                                    ''
-                                }
-                                <div class="logo-fallback" style="${match.home_logo ? 'display: none;' : 'display: flex;'}">🏠</div>
+                    <div class="instagram-teams-container">
+                        <div class="instagram-team ${homeWon ? 'instagram-winner' : ''}">
+                            <div class="instagram-team-logo">
+                                <div class="instagram-logo-fallback">🏠</div>
                             </div>
-                            <div class="team-name">${match.home_team}</div>
-                            <div class="score-container ${homeWon ? 'winner-score' : ''}">
-                                <div class="match-score">${match.score_home || '-'}</div>
-                            </div>
+                            <div class="instagram-team-name">${match.home_team}</div>
+                            <div class="instagram-team-score ${homeWon ? 'instagram-winner-score' : ''}">${match.score_home || '-'}</div>
                         </div>
-                        <div class="vs">VS</div>
-                        <div class="team ${awayWon ? 'winner' : ''}">
-                            <div class="team-logo">
-                                ${match.away_logo ? 
-                                    `<img src="${match.away_logo}" alt="${match.away_team}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">` : 
-                                    ''
-                                }
-                                <div class="logo-fallback" style="${match.away_logo ? 'display: none;' : 'display: flex;'}">✈️</div>
+                        <div class="instagram-vs">VS</div>
+                        <div class="instagram-team ${awayWon ? 'instagram-winner' : ''}">
+                            <div class="instagram-team-logo">
+                                <div class="instagram-logo-fallback">✈️</div>
                             </div>
-                            <div class="team-name">${match.away_team}</div>
-                            <div class="score-container ${awayWon ? 'winner-score' : ''}">
-                                <div class="match-score">${match.score_away || '-'}</div>
-                            </div>
+                            <div class="instagram-team-name">${match.away_team}</div>
+                            <div class="instagram-team-score ${awayWon ? 'instagram-winner-score' : ''}">${match.score_away || '-'}</div>
                         </div>
                     </div>
-                    <div class="match-footer">
-                        <div class="match-venue">${formattedTime} - ${venueInfo}</div>
-                        ${hasFdm ? `
-                        <button class="fdm-button" onclick="openFdmModal('${fdmUrl}')" title="Voir la feuille de match">
-                            <i class="ri-file-text-line"></i>
-                        </button>
-                        ` : ''}
+                    <div class="instagram-match-footer">
+                        <div class="instagram-match-level">${match.level || 'Niveau inconnu'}</div>
+                        <div class="instagram-match-venue">${venueInfo}</div>
                     </div>
                 </div>
                 `;
             }).join('');
         }
-        
+
         function showClubsList() {
             const clubsResults = document.getElementById('clubs-results');
             const clubDetailView = document.getElementById('club-detail-view');
@@ -2681,13 +2755,12 @@
             });
         }
 
-
         async function captureMatchesAsImage(containerId, title) {
             const container = document.getElementById(containerId);
             if (!container) return;
         
             try {
-                // Ajouter un overlay de loading (sans remplacer le contenu)
+                // Ajouter un overlay de loading
                 const overlay = document.createElement('div');
                 overlay.id = 'capture-overlay';
                 overlay.style.position = 'fixed';
@@ -2700,37 +2773,40 @@
                 overlay.style.justifyContent = 'center';
                 overlay.style.alignItems = 'center';
                 overlay.style.zIndex = '9999';
-                overlay.style.flexDirection = 'column';
                 overlay.innerHTML = `
                     <div class="spinner"></div>
                     <div style="margin-top: 8px; font-weight: 600;">Capture en cours...</div>
                 `;
                 document.body.appendChild(overlay);
         
-                // Utiliser html2canvas pour capturer le conteneur
-                const canvas = await html2canvas(container, {
-                    useCORS: true,
-                    allowTaint: true,
-                    logging: false,
-                    scale: 2,
-                    backgroundColor: '#ffffff',
-                });
+                // Capturer chaque carte individuellement
+                const matchCards = container.querySelectorAll('.instagram-match-card');
+                for (let i = 0; i < matchCards.length; i++) {
+                    const card = matchCards[i];
+                    const canvas = await html2canvas(card, {
+                        useCORS: true,
+                        allowTaint: true,
+                        logging: false,
+                        scale: 2,
+                        backgroundColor: '#ffffff',
+                    });
+        
+                    // Télécharger l'image
+                    const link = document.createElement('a');
+                    link.download = `${title.replace(/\s+/g, '_')}_match_${i + 1}_${new Date().toISOString().split('T')[0]}.png`;
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                }
         
                 // Supprimer l'overlay
                 document.body.removeChild(overlay);
-        
-                // Créer un lien pour télécharger l'image
-                const link = document.createElement('a');
-                link.download = `${title.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.png`;
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-        
                 showNotification('Capture terminée !');
             } catch (error) {
                 console.error('Erreur lors de la capture:', error);
                 showError(containerId, 'Erreur lors de la capture');
             }
         }
+
         
         // Fonction pour formater l'heure (enlever les secondes)
         function formatTime(timeString) {
