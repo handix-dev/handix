@@ -182,101 +182,113 @@
             <div class="nav-label">Profil</div>
         </div>
     </nav>
+    <!-- Script de capture isolé -->
     <script>
-        // Fonction pour capturer et télécharger la vue détaillée du match (avec images externes)
-        async function captureMatchDetail() {
-            const node = document.getElementById('match-detail-view');
-            if (!node || node.style.display === 'none') {
-                alert("Aucun détail de match à capturer.");
-                return;
+        (function() {
+            // Fonction pour capturer et télécharger la vue détaillée du match (avec images externes)
+            async function captureMatchDetail() {
+                const node = document.getElementById('match-detail-view');
+                if (!node || node.style.display === 'none') {
+                    alert("Aucun détail de match à capturer.");
+                    return;
+                }
+
+                // On cache le bouton de capture pendant la capture
+                document.getElementById('capture-button').style.display = 'none';
+
+                try {
+                    // On clone le node pour éviter de modifier l'original
+                    const clone = node.cloneNode(true);
+                    clone.style.position = 'absolute';
+                    clone.style.left = '-9999px';
+                    clone.style.backgroundColor = 'white';
+                    document.body.appendChild(clone);
+
+                    // On attend que les images externes soient chargées
+                    const images = clone.querySelectorAll('img');
+                    const promises = [];
+                    images.forEach(img => {
+                        if (!img.complete && img.src) {
+                            promises.push(new Promise((resolve) => {
+                                img.onload = resolve;
+                                img.onerror = resolve;
+                                img.crossOrigin = 'anonymous';
+                                if (img.src) {
+                                    img.src = img.src; // Force reload
+                                }
+                            }));
+                        }
+                    });
+
+                    await Promise.all(promises);
+
+                    // On utilise html2canvas pour capturer le DOM (inclut les images externes)
+                    const canvas = await html2canvas(clone, {
+                        useCORS: true,
+                        allowTaint: true,
+                        logging: false,
+                        scale: 2,
+                        backgroundColor: '#ffffff'
+                    });
+
+                    // On supprime le clone
+                    document.body.removeChild(clone);
+
+                    // On génère le téléchargement
+                    const link = document.createElement('a');
+                    link.download = 'match-detail.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                } catch (err) {
+                    console.error('Erreur lors de la capture:', err);
+                    alert("Erreur lors de la capture de l'image.");
+                } finally {
+                    document.getElementById('capture-button').style.display = 'block';
+                }
             }
 
-            // On cache le bouton de capture pendant la capture
-            document.getElementById('capture-button').style.display = 'none';
-
-            try {
-                // On clone le node pour éviter de modifier l'original
-                const clone = node.cloneNode(true);
-                clone.style.position = 'absolute';
-                clone.style.left = '-9999px';
-                clone.style.backgroundColor = 'white';
-                document.body.appendChild(clone);
-
-                // On attend que les images externes soient chargées
-                const images = clone.querySelectorAll('img');
-                const promises = [];
-                images.forEach(img => {
-                    if (!img.complete && img.src) {
-                        promises.push(new Promise((resolve) => {
-                            img.onload = resolve;
-                            img.onerror = resolve;
-                            img.crossOrigin = 'anonymous';
-                            if (img.src) {
-                                img.src = img.src; // Force reload
-                            }
-                        }));
-                    }
-                });
-
-                await Promise.all(promises);
-
-                // On utilise html2canvas pour capturer le DOM (inclut les images externes)
-                const canvas = await html2canvas(clone, {
-                    useCORS: true,
-                    allowTaint: true,
-                    logging: false,
-                    scale: 2,
-                    backgroundColor: '#ffffff'
-                });
-
-                // On supprime le clone
-                document.body.removeChild(clone);
-
-                // On génère le téléchargement
-                const link = document.createElement('a');
-                link.download = 'match-detail.png';
-                link.href = canvas.toDataURL('image/png');
-                link.click();
-            } catch (err) {
-                console.error('Erreur lors de la capture:', err);
-                alert("Erreur lors de la capture de l'image.");
-            } finally {
-                document.getElementById('capture-button').style.display = 'block';
+            // On montre/cache le bouton de capture selon l'affichage de la vue détaillée
+            function updateCaptureButtonVisibility() {
+                const detailView = document.getElementById('match-detail-view');
+                const captureButton = document.getElementById('capture-button');
+                if (detailView && detailView.style.display !== 'none') {
+                    captureButton.style.display = 'block';
+                } else {
+                    captureButton.style.display = 'none';
+                }
             }
-        }
 
-        // On montre/cache le bouton de capture selon l'affichage de la vue détaillée
-        function updateCaptureButtonVisibility() {
-            const detailView = document.getElementById('match-detail-view');
-            const captureButton = document.getElementById('capture-button');
-            if (detailView && detailView.style.display !== 'none') {
-                captureButton.style.display = 'block';
-            } else {
-                captureButton.style.display = 'none';
-            }
-        }
+            // On écoute les changements d'affichage de la vue détaillée
+            document.addEventListener('DOMContentLoaded', () => {
+                const captureButton = document.getElementById('capture-button');
+                const backButton = document.getElementById('back-to-matches');
 
-        // On écoute les changements d'affichage de la vue détaillée
-        document.addEventListener('DOMContentLoaded', () => {
-            const detailView = document.getElementById('match-detail-view');
-            const captureButton = document.getElementById('capture-button');
-            const backButton = document.getElementById('back-to-matches');
+                // On charge dynamiquement html2canvas
+                const script = document.createElement('script');
+                script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
+                script.onload = () => {
+                    captureButton.addEventListener('click', captureMatchDetail);
+                    updateCaptureButtonVisibility();
 
-            // On charge dynamiquement html2canvas
-            const script = document.createElement('script');
-            script.src = 'https://html2canvas.hertzen.com/dist/html2canvas.min.js';
-            script.onload = () => {
-                captureButton.addEventListener('click', captureMatchDetail);
-                updateCaptureButtonVisibility();
-                backButton.addEventListener('click', () => {
-                    setTimeout(updateCaptureButtonVisibility, 100);
-                });
-                const observer = new MutationObserver(updateCaptureButtonVisibility);
-                observer.observe(detailView, { attributes: true, attributeFilter: ['style'] });
-            };
-            document.head.appendChild(script);
-        });
+                    // On écoute le bouton "Retour aux matchs" sans écraser les événements existants
+                    const originalBackClick = backButton.onclick;
+                    backButton.onclick = function(e) {
+                        if (originalBackClick) originalBackClick(e);
+                        setTimeout(updateCaptureButtonVisibility, 100);
+                    };
+
+                    // On observe les changements d'affichage de la vue détaillée
+                    const observer = new MutationObserver(updateCaptureButtonVisibility);
+                    observer.observe(document.getElementById('match-detail-view'), {
+                        attributes: true,
+                        attributeFilter: ['style']
+                    });
+                };
+                document.head.appendChild(script);
+            });
+        })();
     </script>
+    <!-- Ton script.js original -->
     <script src="script.js"></script>
 </body>
 </html>
