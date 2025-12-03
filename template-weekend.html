@@ -2617,6 +2617,7 @@
             // ID unique pour le conteneur des matchs
             const matchesListId = `matches-list-${Date.now()}`;
         
+            // Conserver le contenu existant et ajouter le bouton "Capture"
             container.innerHTML = `
                 <div style="margin-bottom: 16px; color: var(--text-muted); font-size: 16px; font-weight: 600; width: 100%;">
                     ${title} (${matches.length})
@@ -2635,6 +2636,7 @@
                 captureMatchesAsImage(matchesListId, title);
             });
         }
+
 
         
         function displayMatchResults(matches, containerId, title = 'Résultats') {
@@ -2659,6 +2661,7 @@
             // ID unique pour le conteneur des matchs
             const matchesListId = `matches-list-${Date.now()}`;
         
+            // Conserver le contenu existant et ajouter le bouton "Capture"
             container.innerHTML = `
                 <div style="margin-bottom: 16px; color: var(--text-muted); font-size: 16px; font-weight: 600; width: 100%;">
                     ${title} (${matches.length})
@@ -2678,21 +2681,43 @@
             });
         }
 
+
         async function captureMatchesAsImage(containerId, title) {
             const container = document.getElementById(containerId);
             if (!container) return;
         
             try {
-                showLoading(containerId, 'Capture en cours...');
+                // Ajouter un overlay de loading (sans remplacer le contenu)
+                const overlay = document.createElement('div');
+                overlay.id = 'capture-overlay';
+                overlay.style.position = 'fixed';
+                overlay.style.top = '0';
+                overlay.style.left = '0';
+                overlay.style.width = '100%';
+                overlay.style.height = '100%';
+                overlay.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+                overlay.style.display = 'flex';
+                overlay.style.justifyContent = 'center';
+                overlay.style.alignItems = 'center';
+                overlay.style.zIndex = '9999';
+                overlay.style.flexDirection = 'column';
+                overlay.innerHTML = `
+                    <div class="spinner"></div>
+                    <div style="margin-top: 8px; font-weight: 600;">Capture en cours...</div>
+                `;
+                document.body.appendChild(overlay);
         
                 // Utiliser html2canvas pour capturer le conteneur
                 const canvas = await html2canvas(container, {
-                    useCORS: true, // Essayer de contourner les restrictions CORS
-                    allowTaint: true, // Autoriser les images "tainted" (si CORS échoue)
+                    useCORS: true,
+                    allowTaint: true,
                     logging: false,
-                    scale: 2, // Meilleure qualité
-                    backgroundColor: '#ffffff', // Fond blanc
+                    scale: 2,
+                    backgroundColor: '#ffffff',
                 });
+        
+                // Supprimer l'overlay
+                document.body.removeChild(overlay);
         
                 // Créer un lien pour télécharger l'image
                 const link = document.createElement('a');
@@ -2706,7 +2731,6 @@
                 showError(containerId, 'Erreur lors de la capture');
             }
         }
-
         
         // Fonction pour formater l'heure (enlever les secondes)
         function formatTime(timeString) {
