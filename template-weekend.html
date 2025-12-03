@@ -238,7 +238,7 @@
                     await loadTodayMatches();
                     await loadFavoritesPreview();
                     await extractClubsFromTeams();
-                    initHomeEventListeners();
+                    
                     break;
                 case 'salles':
                     await initMap();
@@ -3905,13 +3905,16 @@
                 const clubNames = new Set();
                 
                 data.forEach(match => {
-                    const homeClub = match.home_team.split(' ')[0];
-                    const awayClub = match.away_team.split(' ')[0];
-                    
-                    clubNames.add(homeClub);
-                    clubNames.add(awayClub);
+                    if (match.home_team) {
+                        const homeClub = match.home_team.split(' ')[0];
+                        clubNames.add(homeClub);
+                    }
+                    if (match.away_team) {
+                        const awayClub = match.away_team.split(' ')[0];
+                        clubNames.add(awayClub);
+                    }
                 });
-        
+
                 clubsData = Array.from(clubNames).map(name => ({
                     name: name,
                     teams: [],
