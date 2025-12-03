@@ -3903,8 +3903,9 @@
                 if (error) throw error;
         
                 const clubNames = new Set();
-                
+        
                 data.forEach(match => {
+                    // Vérifiez que home_team et away_team existent et ne sont pas null
                     if (match.home_team) {
                         const homeClub = match.home_team.split(' ')[0];
                         clubNames.add(homeClub);
@@ -3914,7 +3915,7 @@
                         clubNames.add(awayClub);
                     }
                 });
-
+        
                 clubsData = Array.from(clubNames).map(name => ({
                     name: name,
                     teams: [],
@@ -3923,11 +3924,11 @@
         
                 clubsData.forEach(club => {
                     club.teams = data
-                        .filter(match => 
-                            match.home_team.includes(club.name) || 
-                            match.away_team.includes(club.name)
+                        .filter(match =>
+                            (match.home_team && match.home_team.includes(club.name)) ||
+                            (match.away_team && match.away_team.includes(club.name))
                         )
-                        .map(match => match.home_team.includes(club.name) ? match.home_team : match.away_team)
+                        .map(match => match.home_team && match.home_team.includes(club.name) ? match.home_team : match.away_team)
                         .filter((team, index, arr) => arr.indexOf(team) === index)
                         .slice(0, 5);
                 });
@@ -3936,6 +3937,7 @@
                 console.error('Erreur extraction clubs:', error);
             }
         }
+
         
         // FONCTIONS RECHERCHE GLOBALE
         function performGlobalSearch() {
