@@ -1,0 +1,21 @@
+{
+    "name": "Handix",
+    "short_name": "Handix",
+    "start_url": "home.html",
+    "display": "standalone",
+    "background_color": "#050f44",
+    "theme_color": "#050f44",
+    "icons": [
+      {
+        "src": "./icone.png",
+        "sizes": "192x192",
+        "type": "image/png"
+      },
+      {
+        "src": "./icone.png",
+        "sizes": "512x512",
+        "type": "image/png"
+      }
+    ]
+  }
+  
